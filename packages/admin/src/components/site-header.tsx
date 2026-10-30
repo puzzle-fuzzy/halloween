@@ -6,6 +6,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 const titles: Record<string, string> = {
   "/": "Overview",
   "/tokens": "Devices",
+  "/oss-accounts": "OSS Accounts",
 }
 
 export function SiteHeader() {

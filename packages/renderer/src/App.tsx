@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import CloudDrivePage from "@/pages/cloud-drive"
 import DashboardPage from "@/pages/dashboard"
+import OssManagerPage from "@/pages/oss-manager"
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
                 <Routes>
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/cloud" element={<CloudDrivePage />} />
+                  <Route path="/oss" element={<OssManagerPage />} />
                 </Routes>
               </div>
             </SidebarInset>

@@ -9,6 +9,7 @@ import {
   IconSearch,
   IconSettings,
   IconFileWord,
+  IconBucket,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -38,6 +39,11 @@ const data = {
       title: "Cloud",
       to: "/cloud",
       icon: IconCloud,
+    },
+    {
+      title: "OSS",
+      to: "/oss",
+      icon: IconBucket,
     },
   ],
   navSecondary: [
@@ -96,4 +102,5 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
+
 

@@ -8,6 +8,7 @@ import { WindowControls } from "@/components/window-controls"
 const titles: Record<string, string> = {
   "/": "Dashboard",
   "/cloud": "Cloud",
+  "/oss": "OSS",
 }
 
 export function SiteHeader() {

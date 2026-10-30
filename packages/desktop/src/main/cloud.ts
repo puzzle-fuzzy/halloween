@@ -77,6 +77,8 @@ async function apiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
+export { apiJson, progressReporter, uniqueTarget, getConfig }
+
 function encodeRemotePath(rel: string): string {
   return rel
     .split('/')

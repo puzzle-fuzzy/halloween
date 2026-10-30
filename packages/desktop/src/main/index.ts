@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { registerCloudHandlers } from './cloud'
+import { registerOssHandlers } from './oss'
 
 const devServerUrl = process.env['VITE_DEV_SERVER_URL']
 
@@ -56,7 +57,7 @@ async function createWindow(): Promise<void> {
   })
   win.webContents.on('did-finish-load', () => console.log('[main] page loaded'))
 
-  win.webContents.on('render-process-gone', (_event, details) =>
+win.webContents.on('render-process-gone', (_event, details) =>
     console.error(`[main] renderer gone: ${details.reason}`)
   )
 
@@ -80,6 +81,7 @@ async function createWindow(): Promise<void> {
 
 void app.whenReady().then(() => {
   registerCloudHandlers(() => mainWindow)
+  registerOssHandlers(() => mainWindow)
   void createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
@@ -89,5 +91,6 @@ void app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+
 
 

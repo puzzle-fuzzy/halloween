@@ -6,6 +6,7 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import DevicePage from "@/pages/device"
 import LoginPage from "@/pages/login"
+import OssAccountsPage from "@/pages/oss-accounts"
 import OverviewPage from "@/pages/overview"
 import TokensPage from "@/pages/tokens"
 
@@ -40,6 +41,7 @@ export default function App() {
       <Route path="/" element={<Shell />}>
         <Route index element={<OverviewPage />} />
         <Route path="tokens" element={<TokensPage />} />
+        <Route path="oss-accounts" element={<OssAccountsPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

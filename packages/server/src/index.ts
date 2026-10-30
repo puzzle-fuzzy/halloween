@@ -7,6 +7,7 @@ import type { Context, Next } from 'hono'
 import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { logger } from 'hono/logger'
 import { getCookie, setCookie } from 'hono/cookie'
+import { createOssApp, registerOssAdmin } from './oss'
 
 const PORT = Number(process.env.PORT ?? 3690)
 const DATA_ROOT = path.resolve(process.env.DATA_ROOT ?? './data')
@@ -416,6 +417,10 @@ admin.post('/api/device/approve', async (c) => {
   return c.json({ error: 'unknown code' }, 404)
 })
 
+// oss account management must register BEFORE the static catch-all below,
+// or admin.get('*') swallows every later-added GET route
+registerOssAdmin(admin)
+
 // ----------------------------------------------------------------- admin: static
 
 admin.get('*', async (c) => {
@@ -431,6 +436,7 @@ admin.get('*', async (c) => {
 
 root.route('/cloud', cloud)
 root.route('/admin', admin)
+root.route('/oss', createOssApp({ dataRoot: DATA_ROOT, auth: cloudAuth }))
 
 export default {
   port: PORT,

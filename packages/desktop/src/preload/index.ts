@@ -44,4 +44,24 @@ contextBridge.exposeInMainWorld('electron', {
     },
   },
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  oss: {
+    accounts: () => ipcRenderer.invoke('oss:accounts'),
+    buckets: (accountId: string) => ipcRenderer.invoke('oss:buckets', accountId),
+    objects: (accountId: string, bucket: string, prefix: string) =>
+      ipcRenderer.invoke('oss:objects', accountId, bucket, prefix),
+    previewUrl: (accountId: string, bucket: string, key: string) =>
+      ipcRenderer.invoke('oss:preview-url', accountId, bucket, key),
+    mkdir: (accountId: string, bucket: string, key: string) =>
+      ipcRenderer.invoke('oss:mkdir', accountId, bucket, key),
+    rename: (accountId: string, bucket: string, from: string, to: string) =>
+      ipcRenderer.invoke('oss:rename', accountId, bucket, from, to),
+    remove: (accountId: string, bucket: string, keys: string[]) =>
+      ipcRenderer.invoke('oss:delete', accountId, bucket, keys),
+    pickAndUpload: (accountId: string, bucket: string, prefix: string) =>
+      ipcRenderer.invoke('oss:pick-and-upload', accountId, bucket, prefix),
+    uploadFiles: (accountId: string, bucket: string, prefix: string, localPaths: string[]) =>
+      ipcRenderer.invoke('oss:upload-files', accountId, bucket, prefix, localPaths),
+    downloadTo: (accountId: string, bucket: string, key: string, name: string, targetDir: string) =>
+      ipcRenderer.invoke('oss:download-to', accountId, bucket, key, name, targetDir),
+  },
 })
