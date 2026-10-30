@@ -16,6 +16,8 @@ export function WindowControls() {
 
   if (!api) return null
 
+  // wrap bridge calls: passing api.minimize straight as onClick would forward
+  // the React SyntheticEvent across the context bridge, which cannot be cloned
   const button =
     "inline-flex w-11 shrink-0 items-center justify-center text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
 
@@ -25,7 +27,7 @@ export function WindowControls() {
         type="button"
         aria-label="Minimize"
         className={button}
-        onClick={api.minimize}
+        onClick={() => api.minimize()}
       >
         <IconMinus className="size-4" />
       </button>
@@ -33,7 +35,7 @@ export function WindowControls() {
         type="button"
         aria-label={maximized ? "Restore" : "Maximize"}
         className={button}
-        onClick={api.toggleMaximize}
+        onClick={() => api.toggleMaximize()}
       >
         {maximized ? (
           <IconCopy className="size-3.5" />
@@ -45,7 +47,7 @@ export function WindowControls() {
         type="button"
         aria-label="Close"
         className={`${button} hover:bg-destructive hover:text-white`}
-        onClick={api.close}
+        onClick={() => api.close()}
       >
         <IconX className="size-4" />
       </button>

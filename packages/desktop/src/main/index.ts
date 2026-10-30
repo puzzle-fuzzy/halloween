@@ -55,6 +55,7 @@ async function createWindow(): Promise<void> {
     console.log(`[renderer] ${event.message}`)
   })
   win.webContents.on('did-finish-load', () => console.log('[main] page loaded'))
+
   win.webContents.on('render-process-gone', (_event, details) =>
     console.error(`[main] renderer gone: ${details.reason}`)
   )
@@ -88,4 +89,5 @@ void app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
+
 
