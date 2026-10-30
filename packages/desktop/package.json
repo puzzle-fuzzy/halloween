@@ -1,0 +1,19 @@
+{
+  "name": "@halloween/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Electron shell: main process, preload, packaging",
+  "main": "dist/main/index.js",
+  "scripts": {
+    "dev": "bun scripts/dev.mjs",
+    "build": "bun scripts/build.mjs",
+    "dist": "electron-builder --win",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "electron": "^45.1.0",
+    "electron-builder": "^26.18.0",
+    "esbuild": "^0.28.2"
+  }
+}

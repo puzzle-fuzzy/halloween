@@ -1,0 +1,9 @@
+appId: com.halloween.desktop
+productName: Halloween
+directories:
+  output: release
+files:
+  - dist/**
+win:
+  target:
+    - nsis
