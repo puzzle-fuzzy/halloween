@@ -5,3 +5,4 @@ release/
 .DS_Store
 .env
 .local-data/
+packages/server/public/

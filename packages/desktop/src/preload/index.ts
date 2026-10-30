@@ -14,9 +14,9 @@ contextBridge.exposeInMainWorld('electron', {
     },
   },
   cloud: {
-    getConfig: () => ipcRenderer.invoke('cloud:get-config'),
-    setConfig: (config: { serverUrl: string; token: string }) =>
-      ipcRenderer.invoke('cloud:set-config', config),
+    login: () => ipcRenderer.invoke('cloud:login'),
+    logout: () => ipcRenderer.invoke('cloud:logout'),
+    isAuthed: () => ipcRenderer.invoke('cloud:is-authed'),
     list: (dir: string) => ipcRenderer.invoke('cloud:list', dir),
     mkdir: (dir: string) => ipcRenderer.invoke('cloud:mkdir', dir),
     rename: (from: string, to: string) => ipcRenderer.invoke('cloud:rename', from, to),

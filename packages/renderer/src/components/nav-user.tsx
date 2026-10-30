@@ -8,6 +8,9 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react"
 import { useTheme } from "next-themes"
+import { toast } from "sonner"
+
+import { useCloudAuth } from "@/components/cloud/auth"
 
 import {
   Avatar,
@@ -43,6 +46,7 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
+  const cloudAuth = useCloudAuth()
 
   return (
     <SidebarMenu>
@@ -113,7 +117,11 @@ export function NavUser({
               </DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => {
+                void cloudAuth.logout().then(() => toast.success("Signed out"))
+              }}
+            >
               <IconLogout />
               Log out
             </DropdownMenuItem>

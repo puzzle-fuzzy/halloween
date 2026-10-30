@@ -1,10 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import { randomUUID } from 'node:crypto'
+import os from 'node:os'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
 import throttle from 'lodash/throttle'
+
+export const DEFAULT_SERVER_URL = 'https://halloween.yxswy.com/cloud'
 
 export interface CloudConfig {
   serverUrl: string
@@ -36,14 +39,16 @@ function configPath(): string {
 async function getConfig(): Promise<CloudConfig> {
   try {
     const raw = JSON.parse(await fsp.readFile(configPath(), 'utf-8')) as Partial<CloudConfig>
-    return { serverUrl: raw.serverUrl ?? '', token: raw.token ?? '' }
+    return {
+      serverUrl: raw.serverUrl || DEFAULT_SERVER_URL,
+      token: raw.token ?? '',
+    }
   } catch {
-    return { serverUrl: '', token: '' }
+    return { serverUrl: DEFAULT_SERVER_URL, token: '' }
   }
 }
 
 async function saveConfig(config: CloudConfig): Promise<void> {
-  config.serverUrl = config.serverUrl.replace(/\/+$/, '')
   await fsp.mkdir(path.dirname(configPath()), { recursive: true })
   await fsp.writeFile(configPath(), JSON.stringify(config, null, 2), 'utf-8')
 }
@@ -155,8 +160,51 @@ function uniqueTarget(dir: string, name: string): string {
 export function registerCloudHandlers(getWindow: () => BrowserWindow | null): void {
   getWin = getWindow
 
-  ipcMain.handle('cloud:get-config', () => getConfig())
-  ipcMain.handle('cloud:set-config', (_event, config: CloudConfig) => saveConfig(config))
+  ipcMain.handle('cloud:login', async () => {
+    const config = await getConfig()
+    const api = async (pathname: string, init?: RequestInit) =>
+      fetch(config.serverUrl + pathname, {
+        ...init,
+        headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
+      })
+    const codeRes = await api('/api/device/code', {
+      method: 'POST',
+      body: JSON.stringify({ name: os.hostname() }),
+    })
+    if (!codeRes.ok) throw new Error(`Failed to start sign-in (HTTP ${codeRes.status})`)
+    const device = (await codeRes.json()) as {
+      device_code: string
+      verify_url: string
+      expires_in: number
+    }
+    await shell.openExternal(device.verify_url)
+    const deadline = Date.now() + Math.min(device.expires_in, 600) * 1000
+    for (;;) {
+      await new Promise((resolve) => setTimeout(resolve, 3000))
+      if (Date.now() > deadline) throw new Error('Sign-in timed out')
+      const tokenRes = await api('/api/device/token', {
+        method: 'POST',
+        body: JSON.stringify({ device_code: device.device_code }),
+      })
+      if (tokenRes.status === 410) throw new Error('Sign-in expired, please try again')
+      if (tokenRes.status !== 200) continue
+      const result = (await tokenRes.json()) as { status: string; token?: string }
+      if (result.status === 'denied') throw new Error('Sign-in was denied')
+      if (result.status === 'approved' && result.token) {
+        await saveConfig({ serverUrl: config.serverUrl, token: result.token })
+        return { ok: true }
+      }
+    }
+  })
+
+  ipcMain.handle('cloud:logout', async () => {
+    const config = await getConfig()
+    await saveConfig({ serverUrl: config.serverUrl, token: '' })
+  })
+
+  ipcMain.handle('cloud:is-authed', async () => {
+    return Boolean((await getConfig()).token)
+  })
 
   ipcMain.handle('cloud:list', (_e, dir: string) =>
     apiJson<{ entries: CloudEntry[] }>(`/api/files?path=${encodeURIComponent(dir)}`)

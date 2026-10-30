@@ -33,8 +33,9 @@ declare global {
         onMaximizeChange: (callback: (maximized: boolean) => void) => () => void
       }
       cloud?: {
-        getConfig: () => Promise<CloudConfig>
-        setConfig: (config: CloudConfig) => Promise<void>
+        login: () => Promise<{ ok: boolean }>
+        logout: () => Promise<void>
+        isAuthed: () => Promise<boolean>
         list: (dir: string) => Promise<{ entries: CloudEntry[] }>
         mkdir: (dir: string) => Promise<unknown>
         rename: (from: string, to: string) => Promise<unknown>

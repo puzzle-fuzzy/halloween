@@ -13,6 +13,7 @@ ExecStart=/usr/local/bin/bun run src/index.ts
 Environment=PORT=3690
 Environment=DATA_ROOT=/srv/halloween-cloud
 Environment=TOKEN=CHANGE_ME
+Environment=ADMIN_PASSWORD=CHANGE_ME_TOO
 Restart=always
 RestartSec=3
 

@@ -12,7 +12,6 @@ import {
   IconPhoto,
   IconPlayerPlay,
   IconRefresh,
-  IconSettings,
   IconUpload,
   IconVideo,
 } from "@tabler/icons-react"
@@ -20,7 +19,7 @@ import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
 
 import { TransferPanel } from "@/components/cloud/transfer-panel"
-import { useCloudSettings } from "@/components/cloud/settings"
+import { useCloudAuth } from "@/components/cloud/auth"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -66,8 +65,10 @@ interface PromptState {
 }
 
 export default function CloudDrivePage() {
-  const { configured, open: openSettings } = useCloudSettings()
+  const { authed, login } = useCloudAuth()
   const cloud = window.electron?.cloud
+  const [signingIn, setSigningIn] = React.useState(false)
+  const [signInError, setSignInError] = React.useState("")
 
   const [currentPath, setCurrentPath] = React.useState("/")
   const [entries, setEntries] = React.useState<CloudEntry[]>([])
@@ -98,16 +99,16 @@ export default function CloudDrivePage() {
   )
 
   React.useEffect(() => {
-    if (configured && !searchQ) void load(currentPath)
-  }, [configured, currentPath, searchQ, load])
+    if (authed && !searchQ) void load(currentPath)
+  }, [authed, currentPath, searchQ, load])
 
   React.useEffect(() => {
-    if (!configured || !searchQ.trim()) return
+    if (!authed || !searchQ.trim()) return
     cloud!
       .search(searchQ.trim())
       .then((res) => setEntries(res.entries))
       .catch((e) => toast.error(String(e)))
-  }, [searchQ, configured, cloud])
+  }, [searchQ, authed, cloud])
 
   const navigate = (dir: string) => {
     setCurrentPath(dir)
@@ -202,14 +203,40 @@ export default function CloudDrivePage() {
   const segments = currentPath.split("/").filter(Boolean)
   const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.path))
 
-  if (!configured) {
+  const startSignIn = async () => {
+    if (signingIn) return
+    setSigningIn(true)
+    setSignInError("")
+    try {
+      await login()
+    } catch (e) {
+      setSignInError(String(e))
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
+  if (authed === null || authed === false) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground text-sm">Cloud drive is not configured</p>
-        <Button variant="outline" size="sm" onClick={openSettings}>
-          <IconSettings />
-          Open Settings
-        </Button>
+        {authed === null ? (
+          <p className="text-muted-foreground text-sm">Loading…</p>
+        ) : (
+          <>
+            <p className="text-sm">Sign in to use the cloud drive</p>
+            {signingIn ? (
+              <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                <IconRefresh className="size-4 animate-spin" />
+                Complete the authorization in your browser…
+              </p>
+            ) : (
+              <Button size="sm" onClick={() => void startSignIn()}>
+                Sign in with browser
+              </Button>
+            )}
+            {signInError && <p className="text-destructive text-sm">{signInError}</p>}
+          </>
+        )}
       </div>
     )
   }

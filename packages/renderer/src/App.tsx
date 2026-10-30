@@ -2,7 +2,7 @@ import { MemoryRouter, Route, Routes } from "react-router-dom"
 import { Toaster } from "@/components/ui/sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
-import { CloudSettingsProvider } from "@/components/cloud/settings"
+import { CloudAuthProvider } from "@/components/cloud/auth"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -12,7 +12,7 @@ import DashboardPage from "@/pages/dashboard"
 export default function App() {
   return (
     <TooltipProvider>
-      <CloudSettingsProvider>
+      <CloudAuthProvider>
         <MemoryRouter>
           <SidebarProvider
             style={
@@ -35,7 +35,7 @@ export default function App() {
           </SidebarProvider>
         </MemoryRouter>
         <Toaster position="bottom-right" />
-      </CloudSettingsProvider>
+      </CloudAuthProvider>
     </TooltipProvider>
   )
 }

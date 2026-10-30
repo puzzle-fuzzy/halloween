@@ -11,7 +11,6 @@ import {
   IconFileWord,
 } from "@tabler/icons-react"
 
-import { useCloudSettings } from "@/components/cloud/settings"
 import { NavDocuments } from "@/components/nav-documents"
 import { NavMain } from "@/components/nav-main"
 import { NavSecondary } from "@/components/nav-secondary"
@@ -78,7 +77,6 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
-  const cloudSettings = useCloudSettings()
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
@@ -90,12 +88,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain items={data.navMain} />
         <NavDocuments items={data.documents} />
-        <NavSecondary
-          className="mt-auto"
-          items={data.navSecondary.map((item) =>
-            item.title === "Settings" ? { ...item, onSelect: cloudSettings.open } : item
-          )}
-        />
+        <NavSecondary className="mt-auto" items={data.navSecondary} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={data.user} />
@@ -103,3 +96,4 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
+
