@@ -10,7 +10,9 @@ export default defineConfig({
       '@': path.resolve(import.meta.dirname, './src'),
     },
   },
-  base: './',
+  // absolute subpath: page may be served at /admin (no trailing slash),
+  // where a relative './' base would resolve assets against the root
+  base: '/admin/',
   server: {
     port: 5174,
     proxy: {
