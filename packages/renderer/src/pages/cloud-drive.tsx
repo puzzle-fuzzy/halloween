@@ -122,11 +122,12 @@ export default function CloudDrivePage() {
   const upload = async (localPaths?: string[]) => {
     if (!cloud) return
     try {
-      if (localPaths && localPaths.length > 0) {
-        await cloud.uploadFiles(localPaths, currentPath)
-      } else {
-        await cloud.pickAndUpload(currentPath)
-      }
+      const uploaded =
+        localPaths && localPaths.length > 0
+          ? await cloud.uploadFiles(localPaths, currentPath)
+          : await cloud.pickAndUpload(currentPath)
+      // empty result = user canceled the picker, nothing to report
+      if (!uploaded || uploaded.length === 0) return
       toast.success("Upload complete")
       void load(currentPath)
     } catch (e) {
