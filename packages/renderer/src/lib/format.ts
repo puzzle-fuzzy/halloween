@@ -1,6 +1,5 @@
 import prettyBytes from "pretty-bytes"
 import { format as formatDate, getYear } from "date-fns"
-import { lookup as mimeLookup } from "mime-types"
 
 export function formatBytes(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return "—"
@@ -17,22 +16,19 @@ export function formatTime(mtime: number): string {
 
 export type FileKind = "image" | "video" | "audio" | "archive" | "other"
 
-const ARCHIVE_EXTENSIONS = new Set([
-  "zip",
-  "rar",
-  "7z",
-  "tar",
-  "gz",
-  "bz2",
-  "xz",
-])
+// extension map instead of mime-types: that lib needs node:path, which does not
+// exist in a browser bundle and crashes the renderer (extname is not a function)
+const KIND_BY_EXTENSION: Record<string, FileKind> = {
+  jpg: "image", jpeg: "image", png: "image", gif: "image", webp: "image",
+  svg: "image", bmp: "image", avif: "image", ico: "image",
+  mp4: "video", webm: "video", mkv: "video", mov: "video", avi: "video", m4v: "video",
+  mp3: "audio", flac: "audio", wav: "audio", ogg: "audio", m4a: "audio", aac: "audio",
+  zip: "archive", rar: "archive", "7z": "archive", tar: "archive", gz: "archive",
+  bz2: "archive", xz: "archive",
+}
 
 export function fileKind(name: string): FileKind {
-  const type = mimeLookup(name) || ""
-  if (type.startsWith("image/")) return "image"
-  if (type.startsWith("video/")) return "video"
-  if (type.startsWith("audio/")) return "audio"
   const ext = name.split(".").pop()?.toLowerCase() ?? ""
-  if (ARCHIVE_EXTENSIONS.has(ext)) return "archive"
-  return "other"
+  return KIND_BY_EXTENSION[ext] ?? "other"
 }
+

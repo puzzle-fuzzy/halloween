@@ -71,9 +71,6 @@ export default function DevicePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="rounded-md border p-4 text-center font-mono text-2xl tracking-[0.4em]">
-            {code}
-          </div>
           {stage === 'approved' && (
             <p className="flex items-center justify-center gap-2 text-sm">
               <IconCircleCheck className="size-4" />
@@ -98,14 +95,14 @@ export default function DevicePage() {
           )}
           {error && <p className="text-destructive text-sm">{error}</p>}
         </CardContent>
-        {stage === 'need-password' && (
+        {stage !== 'approved' && (
           <CardFooter>
             <Button
               className="w-full"
-              onClick={() => void signInAndApprove()}
-              disabled={!password}
+              onClick={() => void (stage === 'need-password' ? signInAndApprove() : approve())}
+              disabled={stage === 'checking' || stage === 'approving' || (stage === 'need-password' && !password)}
             >
-              Approve device
+              {stage === 'approving' ? 'Approving…' : 'Approve device'}
             </Button>
           </CardFooter>
         )}

@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { CloudAuthProvider } from "@/components/cloud/auth"
+import { ErrorBoundary } from "@/components/error-boundary"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { TooltipProvider } from "@/components/ui/tooltip"
@@ -11,6 +12,7 @@ import DashboardPage from "@/pages/dashboard"
 
 export default function App() {
   return (
+    <ErrorBoundary>
     <TooltipProvider>
       <CloudAuthProvider>
         <MemoryRouter>
@@ -37,5 +39,6 @@ export default function App() {
         <Toaster position="bottom-right" />
       </CloudAuthProvider>
     </TooltipProvider>
+    </ErrorBoundary>
   )
 }
