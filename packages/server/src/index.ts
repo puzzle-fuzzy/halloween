@@ -245,7 +245,24 @@ cloud.post('/api/upload', async (c) => {
   const body = c.req.raw.body
   if (!body) throw new HTTPError(400, 'empty body')
   const target = path.join(dir, name)
-  await Bun.write(target, body)
+  // chunked write instead of Bun.write(stream): server bun 1.3 stringifies streams
+  const tmp = `${target}.halloween-partial`
+  const out = fss.createWriteStream(tmp)
+  try {
+    for await (const chunk of body) {
+      if (!out.write(chunk)) {
+        await new Promise<void>((resolve) => out.once('drain', resolve))
+      }
+    }
+    await new Promise<void>((resolve, reject) =>
+      out.end((err: Error | null | undefined) => (err ? reject(err) : resolve()))
+    )
+    await fs.rename(tmp, target)
+  } catch (err) {
+    out.destroy()
+    await fs.rm(tmp, { force: true })
+    throw err
+  }
   const st = await fs.stat(target)
   return c.json({ ok: true, name, size: st.size })
 })
