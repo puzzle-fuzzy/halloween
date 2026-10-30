@@ -342,6 +342,12 @@ cloud.get('/f/*', async (c) => {
 
 // ----------------------------------------------------------------- admin: api
 
+// register auth middleware BEFORE routes, or early route matches skip it
+admin.use('/api/*', async (c, next) => {
+  if (c.req.path.startsWith('/admin/api/login')) return next()
+  return adminAuth(c, next)
+})
+
 admin.post('/api/login', async (c) => {
   const body = await c.req.json().catch(() => ({}))
   const password = (body as { password?: string }).password ?? ''
@@ -361,11 +367,6 @@ admin.post('/api/logout', (c) => {
 })
 
 admin.get('/api/session', (c) => c.json({ ok: true }))
-
-admin.use('/api/*', async (c, next) => {
-  if (c.req.path.startsWith('/admin/api/login')) return next()
-  return adminAuth(c, next)
-})
 
 admin.get('/api/stats', async (c) => {
   const statfs = await fs.statfs(DATA_ROOT).catch(() => null)
