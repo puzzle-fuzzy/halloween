@@ -1,7 +1,12 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
+import { registerCloudHandlers } from './cloud'
 
 const devServerUrl = process.env['VITE_DEV_SERVER_URL']
+
+let mainWindow: BrowserWindow | null = null
+
+app.setName('Halloween')
 
 async function waitForDevServer(url: string): Promise<void> {
   for (let i = 0; i < 120; i++) {
@@ -26,6 +31,11 @@ async function createWindow(): Promise<void> {
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
     },
+  })
+
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
   })
 
   ipcMain.on('window:minimize', () => win.minimize())
@@ -68,6 +78,7 @@ async function createWindow(): Promise<void> {
 }
 
 void app.whenReady().then(() => {
+  registerCloudHandlers(() => mainWindow)
   void createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

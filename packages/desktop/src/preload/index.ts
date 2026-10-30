@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
   versions: process.versions,
@@ -13,4 +13,35 @@ contextBridge.exposeInMainWorld('electron', {
       return () => ipcRenderer.removeListener('window:maximize-changed', listener)
     },
   },
+  cloud: {
+    getConfig: () => ipcRenderer.invoke('cloud:get-config'),
+    setConfig: (config: { serverUrl: string; token: string }) =>
+      ipcRenderer.invoke('cloud:set-config', config),
+    list: (dir: string) => ipcRenderer.invoke('cloud:list', dir),
+    mkdir: (dir: string) => ipcRenderer.invoke('cloud:mkdir', dir),
+    rename: (from: string, to: string) => ipcRenderer.invoke('cloud:rename', from, to),
+    remove: (paths: string[]) => ipcRenderer.invoke('cloud:delete', paths),
+    search: (q: string) => ipcRenderer.invoke('cloud:search', q),
+    fileUrl: (remotePath: string) => ipcRenderer.invoke('cloud:file-url', remotePath),
+    pickAndUpload: (remoteDir: string) => ipcRenderer.invoke('cloud:pick-and-upload', remoteDir),
+    uploadFiles: (localPaths: string[], remoteDir: string) =>
+      ipcRenderer.invoke('cloud:upload-files', localPaths, remoteDir),
+    chooseDownloadDir: () => ipcRenderer.invoke('cloud:choose-download-dir'),
+    downloadTo: (remotePath: string, name: string, targetDir: string) =>
+      ipcRenderer.invoke('cloud:download-to', remotePath, name, targetDir),
+    onProgress: (
+      callback: (progress: {
+        id: string
+        kind: 'upload' | 'download'
+        name: string
+        loaded: number
+        total: number
+      }) => void
+    ) => {
+      const listener = (_event: unknown, progress: unknown) => callback(progress as never)
+      ipcRenderer.on('cloud:progress', listener)
+      return () => ipcRenderer.removeListener('cloud:progress', listener)
+    },
+  },
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 })
