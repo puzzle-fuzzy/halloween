@@ -27,7 +27,7 @@ export function TransferPanel() {
   return (
     <div className="bg-background fixed right-4 bottom-4 z-40 flex w-80 flex-col gap-3 rounded-lg border p-3 shadow-lg">
       <div className="flex items-center justify-between">
-        <span className="text-muted-foreground text-xs">传输中 {items.length}</span>
+        <span className="text-muted-foreground text-xs">Transfers {items.length}</span>
         <Button
           variant="ghost"
           size="icon"

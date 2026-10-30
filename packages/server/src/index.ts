@@ -103,7 +103,7 @@ app.get('/api/files', async (c) => {
       )
   )
   entries.sort((a, b) =>
-    a.type === b.type ? a.name.localeCompare(b.name, 'zh') : a.type === 'dir' ? -1 : 1
+    a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1
   )
   return c.json({ entries })
 })

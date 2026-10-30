@@ -36,7 +36,7 @@ const data = {
       icon: IconDashboard,
     },
     {
-      title: "云盘",
+      title: "Cloud",
       to: "/cloud",
       icon: IconCloud,
     },

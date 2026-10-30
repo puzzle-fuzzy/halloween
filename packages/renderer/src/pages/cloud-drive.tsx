@@ -17,6 +17,7 @@ import {
   IconVideo,
 } from "@tabler/icons-react"
 import { toast } from "sonner"
+import { useDebounce } from "use-debounce"
 
 import { TransferPanel } from "@/components/cloud/transfer-panel"
 import { useCloudSettings } from "@/components/cloud/settings"
@@ -73,7 +74,8 @@ export default function CloudDrivePage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState("")
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
-  const [searchQ, setSearchQ] = React.useState("")
+  const [searchInput, setSearchInput] = React.useState("")
+  const [searchQ, setSearchQ] = useDebounce("", 300)
   const [dragOver, setDragOver] = React.useState(false)
   const [prompt, setPrompt] = React.useState<PromptState | null>(null)
   const [preview, setPreview] = React.useState<{ entry: CloudEntry; url: string } | null>(null)
@@ -101,20 +103,16 @@ export default function CloudDrivePage() {
 
   React.useEffect(() => {
     if (!configured || !searchQ.trim()) return
-    const timer = setTimeout(async () => {
-      try {
-        const res = await cloud!.search(searchQ.trim())
-        setEntries(res.entries)
-      } catch (e) {
-        toast.error(String(e))
-      }
-    }, 300)
-    return () => clearTimeout(timer)
+    cloud!
+      .search(searchQ.trim())
+      .then((res) => setEntries(res.entries))
+      .catch((e) => toast.error(String(e)))
   }, [searchQ, configured, cloud])
 
   const navigate = (dir: string) => {
     setCurrentPath(dir)
     setSelected(new Set())
+    setSearchInput("")
     setSearchQ("")
   }
 
@@ -128,7 +126,7 @@ export default function CloudDrivePage() {
       } else {
         await cloud.pickAndUpload(currentPath)
       }
-      toast.success("上传完成")
+      toast.success("Upload complete")
       void load(currentPath)
     } catch (e) {
       toast.error(String(e))
@@ -144,7 +142,7 @@ export default function CloudDrivePage() {
       for (const f of files) {
         await cloud.downloadTo(f.path, f.name, dir)
       }
-      toast.success(`已下载到 ${dir}`)
+      toast.success(`Saved to ${dir}`)
     } catch (e) {
       toast.error(String(e))
     }
@@ -152,7 +150,7 @@ export default function CloudDrivePage() {
 
   const remove = async (list: CloudEntry[]) => {
     if (!cloud || list.length === 0) return
-    if (!window.confirm(`确定删除 ${list.length} 项？`)) return
+    if (!window.confirm(`Delete ${list.length} item${list.length > 1 ? "s" : ""}?`)) return
     try {
       await cloud.remove(list.map((e) => e.path))
       setSelected(new Set())
@@ -207,10 +205,10 @@ export default function CloudDrivePage() {
   if (!configured) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground text-sm">云盘未配置</p>
+        <p className="text-muted-foreground text-sm">Cloud drive is not configured</p>
         <Button variant="outline" size="sm" onClick={openSettings}>
           <IconSettings />
-          打开设置
+          Open Settings
         </Button>
       </div>
     )
@@ -239,35 +237,43 @@ export default function CloudDrivePage() {
         {segments.length > 0 && (
           <Button
             variant="ghost"
-            size="icon-sm"
+            size="icon"
             className="size-7"
-            onClick={() => navigate(segments.slice(0, -1).join("/") ? `/${segments.slice(0, -1).join("/")}` : "/")}
+            aria-label="Back"
+            onClick={() =>
+              navigate(
+                segments.slice(0, -1).length > 0 ? `/${segments.slice(0, -1).join("/")}` : "/"
+              )
+            }
           >
             <IconArrowLeft className="size-4" />
           </Button>
         )}
         <nav className="flex min-w-0 items-center gap-1 text-sm">
           <button className="hover:bg-accent rounded px-1.5 py-0.5" onClick={() => navigate("/")}>
-            云盘
+            Cloud
           </button>
-          {segments.map((seg, i) => (
+          {segments.map((segment, i) => (
             <React.Fragment key={i}>
               <IconChevronRight className="text-muted-foreground size-3.5 shrink-0" />
               <button
                 className="hover:bg-accent rounded px-1.5 py-0.5"
                 onClick={() => navigate(`/${segments.slice(0, i + 1).join("/")}`)}
               >
-                {seg}
+                {segment}
               </button>
             </React.Fragment>
           ))}
         </nav>
         <div className="ml-auto flex items-center gap-2">
           <Input
-            placeholder="搜索文件"
+            placeholder="Search files"
             className="w-44 md:w-56"
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
+            value={searchInput}
+            onChange={(e) => {
+              setSearchInput(e.target.value)
+              setSearchQ(e.target.value)
+            }}
           />
           <Button
             variant="outline"
@@ -275,21 +281,21 @@ export default function CloudDrivePage() {
             onClick={() => setPrompt({ mode: "mkdir", value: "" })}
           >
             <IconFolderPlus />
-            新建文件夹
+            New Folder
           </Button>
           <Button size="sm" onClick={() => void upload()}>
             <IconUpload />
-            上传
+            Upload
           </Button>
         </div>
       </div>
 
       {selected.size > 0 && (
         <div className="bg-muted/50 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
-          已选 {selected.size} 项
+          {selected.size} selected
           <Button variant="outline" size="sm" onClick={() => void download(selectedEntries)}>
             <IconDownload />
-            下载
+            Download
           </Button>
           <Button
             variant="outline"
@@ -297,10 +303,10 @@ export default function CloudDrivePage() {
             className="text-destructive hover:text-destructive"
             onClick={() => void remove(selectedEntries)}
           >
-            删除
+            Delete
           </Button>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setSelected(new Set())}>
-            取消选择
+            Clear
           </Button>
         </div>
       )}
@@ -309,18 +315,18 @@ export default function CloudDrivePage() {
         {loading ? (
           <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
             <IconRefresh className="size-4 animate-spin" />
-            加载中…
+            Loading…
           </div>
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-destructive text-sm">{error}</p>
             <Button variant="outline" size="sm" onClick={() => void load(currentPath)}>
-              重试
+              Retry
             </Button>
           </div>
         ) : entries.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            {searchQ ? "无匹配结果" : "空目录"}
+            {searchQ ? "No results" : "Empty folder"}
           </div>
         ) : (
           <div className="h-full overflow-auto">
@@ -333,12 +339,12 @@ export default function CloudDrivePage() {
                       onCheckedChange={(v) =>
                         setSelected(v === true ? new Set(entries.map((e) => e.path)) : new Set())
                       }
-                      aria-label="全选"
+                      aria-label="Select all"
                     />
                   </TableHead>
-                  <TableHead>名称</TableHead>
-                  <TableHead className="w-24">大小</TableHead>
-                  <TableHead className="w-40">修改时间</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="w-24">Size</TableHead>
+                  <TableHead className="w-40">Modified</TableHead>
                   <TableHead className="w-12" />
                 </TableRow>
               </TableHeader>
@@ -383,16 +389,18 @@ export default function CloudDrivePage() {
                           {entry.type === "file" && (
                             <DropdownMenuItem onClick={() => void download([entry])}>
                               <IconDownload />
-                              下载
+                              Download
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
-                            onClick={() => setPrompt({ mode: "rename", value: entry.name, target: entry })}
+                            onClick={() =>
+                              setPrompt({ mode: "rename", value: entry.name, target: entry })
+                            }
                           >
-                            重命名
+                            Rename
                           </DropdownMenuItem>
                           <DropdownMenuItem variant="destructive" onClick={() => void remove([entry])}>
-                            删除
+                            Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -405,7 +413,7 @@ export default function CloudDrivePage() {
         )}
         {dragOver && (
           <div className="bg-primary/5 pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-dashed border-primary/40">
-            <span className="text-primary text-sm">松开以上传到当前目录</span>
+            <span className="text-primary text-sm">Drop files to upload here</span>
           </div>
         )}
       </div>
@@ -415,7 +423,7 @@ export default function CloudDrivePage() {
       <Dialog open={prompt !== null} onOpenChange={(o) => !o && setPrompt(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{prompt?.mode === "mkdir" ? "新建文件夹" : "重命名"}</DialogTitle>
+            <DialogTitle>{prompt?.mode === "mkdir" ? "New Folder" : "Rename"}</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
@@ -427,10 +435,10 @@ export default function CloudDrivePage() {
           />
           <DialogFooter>
             <Button variant="outline" onClick={() => setPrompt(null)}>
-              取消
+              Cancel
             </Button>
             <Button onClick={() => void submitPrompt()} disabled={!prompt?.value.trim()}>
-              确定
+              {prompt?.mode === "mkdir" ? "Create" : "Rename"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -443,7 +451,11 @@ export default function CloudDrivePage() {
           </DialogHeader>
           {preview &&
             (fileKind(preview.entry.name) === "image" ? (
-              <img src={preview.url} alt={preview.entry.name} className="max-h-[70vh] w-full object-contain" />
+              <img
+                src={preview.url}
+                alt={preview.entry.name}
+                className="max-h-[70vh] w-full object-contain"
+              />
             ) : fileKind(preview.entry.name) === "video" ? (
               <video src={preview.url} controls className="max-h-[70vh] w-full" />
             ) : (
@@ -456,7 +468,7 @@ export default function CloudDrivePage() {
             <DialogFooter>
               <Button variant="outline" onClick={() => void download([preview.entry])}>
                 <IconDownload />
-                下载
+                Download
               </Button>
             </DialogFooter>
           )}

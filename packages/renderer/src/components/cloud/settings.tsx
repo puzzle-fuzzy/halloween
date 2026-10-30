@@ -59,9 +59,9 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
     try {
       await cloud.setConfig(draft)
       await cloud.list("/")
-      toast.success("连接成功")
+      toast.success("Connected")
     } catch (error) {
-      toast.error(`连接失败：${String(error)}`)
+      toast.error(`Connection failed: ${String(error)}`)
     } finally {
       setTesting(false)
     }
@@ -73,7 +73,7 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
     await cloud.setConfig(draft)
     await reload()
     setOpen(false)
-    toast.success("已保存")
+    toast.success("Saved")
   }
 
   return (
@@ -84,12 +84,12 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>云盘设置</DialogTitle>
-            <DialogDescription>服务器地址与访问令牌</DialogDescription>
+            <DialogTitle>Cloud Settings</DialogTitle>
+            <DialogDescription>Server URL and access token</DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="cloud-server">服务器地址</Label>
+              <Label htmlFor="cloud-server">Server URL</Label>
               <Input
                 id="cloud-server"
                 placeholder="https://example.com"
@@ -98,7 +98,7 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="cloud-token">访问令牌</Label>
+              <Label htmlFor="cloud-token">Access Token</Label>
               <Input
                 id="cloud-token"
                 type="password"
@@ -110,10 +110,10 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={testConnection} disabled={testing || !draft.serverUrl || !draft.token}>
-              {testing ? "测试中…" : "测试连接"}
+              {testing ? "Testing…" : "Test Connection"}
             </Button>
             <Button onClick={save} disabled={!draft.serverUrl || !draft.token}>
-              保存
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>

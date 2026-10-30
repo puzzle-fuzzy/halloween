@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
+import throttle from 'lodash/throttle'
 
 export interface CloudConfig {
   serverUrl: string
@@ -49,7 +50,7 @@ async function saveConfig(config: CloudConfig): Promise<void> {
 
 function assertConfigured(config: CloudConfig): void {
   if (!config.serverUrl || !config.token) {
-    throw new Error('云盘未配置，请先在设置中填写服务器地址和令牌')
+    throw new Error('Cloud drive is not configured. Set the server URL and token in Settings.')
   }
 }
 
@@ -87,24 +88,18 @@ function sendProgress(p: TransferProgress): void {
   getWin()?.webContents.send('cloud:progress', p)
 }
 
-function makeThrottler(): (p: TransferProgress) => void {
-  let last = 0
-  return (p) => {
-    const now = Date.now()
-    if (now - last > 300 || p.loaded >= p.total) {
-      last = now
-      sendProgress(p)
-    }
-  }
+function progressReporter(): { push: (p: TransferProgress) => void; flush: () => void } {
+  const throttled = throttle(sendProgress, 300)
+  return { push: throttled, flush: throttled.flush }
 }
 
 function countedUploadStream(
   filePath: string,
   id: string,
   name: string,
-  total: number
+  total: number,
+  report: { push: (p: TransferProgress) => void }
 ): ReadableStream<Uint8Array> {
-  const throttled = makeThrottler()
   const nodeStream = fs.createReadStream(filePath)
   let loaded = 0
   const web = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>
@@ -112,7 +107,7 @@ function countedUploadStream(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         loaded += chunk.byteLength
-        throttled({ id, kind: 'upload', name, loaded, total })
+        report.push({ id, kind: 'upload', name, loaded, total })
         controller.enqueue(chunk)
       },
     })
@@ -127,16 +122,18 @@ async function uploadFiles(localPaths: string[], remoteDir: string): Promise<{ n
     const name = path.basename(local)
     const { size } = await fsp.stat(local)
     const id = randomUUID()
+    const report = progressReporter()
     const url = `${config.serverUrl}/api/upload?path=${encodeURIComponent(remoteDir)}&name=${encodeURIComponent(name)}`
     const res = await fetch(url, {
       method: 'POST',
       headers: { Authorization: `Bearer ${config.token}` },
-      body: countedUploadStream(local, id, name, size),
+      body: countedUploadStream(local, id, name, size, report),
       duplex: 'half',
     })
+    report.flush()
     if (!res.ok) {
       const text = await res.text().catch(() => '')
-      throw new Error(`上传 ${name} 失败: HTTP ${res.status} ${text}`.slice(0, 200))
+      throw new Error(`Upload failed for ${name}: HTTP ${res.status} ${text}`.slice(0, 200))
     }
     uploaded.push({ name, size })
   }
@@ -217,7 +214,7 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
       const total = Number(res.headers.get('content-length') ?? 0)
       const target = uniqueTarget(targetDir, name)
       const out = fs.createWriteStream(target)
-      const throttled = makeThrottler()
+      const report = progressReporter()
       const reader = res.body.getReader()
       let loaded = 0
       for (;;) {
@@ -226,10 +223,11 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
         if (value) {
           loaded += value.byteLength
           out.write(value)
-          throttled({ id, kind: 'download', name, loaded, total })
+          report.push({ id, kind: 'download', name, loaded, total })
         }
       }
       await new Promise<void>((resolve) => out.end(resolve))
+      report.flush()
       sendProgress({ id, kind: 'download', name, loaded, total: loaded })
       return target
     }
