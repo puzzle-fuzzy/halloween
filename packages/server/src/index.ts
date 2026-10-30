@@ -56,7 +56,9 @@ async function statEntry(parentAbs: string, name: string, relPath: string) {
   }
 }
 
-const app = new Hono()
+// all cloud endpoints live under /cloud — nginx routes the whole prefix here,
+// so future services can share the same domain (halloween.yxswy.com)
+const app = new Hono().basePath('/cloud')
 
 app.use(logger())
 
@@ -179,9 +181,10 @@ app.get('/api/search', async (c) => {
 // auth probe for nginx auth_request
 app.get('/api/check', (c) => c.json({ ok: true }))
 
-// raw file stream; in production nginx takes /f/ over (alias + auth_request)
+// raw file stream; in production nginx takes /cloud/f/ over (alias + auth_request)
 app.get('/f/*', async (c) => {
-  const rel = safeDecode(c.req.path.slice('/f/'.length))
+  const marker = c.req.path.indexOf('/f/')
+  const rel = safeDecode(c.req.path.slice(marker + '/f/'.length))
   const file = resolveSafe(rel)
   const st = await fs.stat(file).catch(() => null)
   if (!st?.isFile()) throw new HTTPError(404, 'not found')

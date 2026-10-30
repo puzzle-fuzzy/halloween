@@ -92,7 +92,7 @@ export function CloudSettingsProvider({ children }: { children: React.ReactNode 
               <Label htmlFor="cloud-server">Server URL</Label>
               <Input
                 id="cloud-server"
-                placeholder="https://example.com"
+                placeholder="https://halloween.yxswy.com/cloud"
                 value={draft.serverUrl}
                 onChange={(e) => setDraft({ ...draft, serverUrl: e.target.value.trim() })}
               />
