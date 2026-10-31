@@ -33,7 +33,7 @@ async function ossApiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
   if (!config.serverUrl || !config.token) {
     throw new Error('OSS is not available. Sign in from the OSS or cloud drive page first.')
   }
-  const base = new URL(config.serverUrl).origin + '/oss'
+  const base = new URL(config.serverUrl).origin
   const res = await fetch(base + pathname, {
     ...init,
     headers: {
