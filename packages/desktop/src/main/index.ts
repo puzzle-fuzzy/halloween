@@ -21,14 +21,17 @@ async function waitForDevServer(url: string): Promise<void> {
 }
 
 async function createWindow(): Promise<void> {
+  const isMac = process.platform === 'darwin'
   const win = new BrowserWindow({
     width: 1280,
     height: 832,
     minWidth: 900,
     minHeight: 600,
     show: false,
-    frame: false,
     autoHideMenuBar: true,
+    // windows/linux: frameless shell with in-app caption buttons;
+    // mac: keep the native traffic lights over a hidden-inset title bar
+    ...(isMac ? { titleBarStyle: 'hiddenInset' as const } : { frame: false }),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
     },

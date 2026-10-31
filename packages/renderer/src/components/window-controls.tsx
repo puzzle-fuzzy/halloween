@@ -14,7 +14,8 @@ export function WindowControls() {
     return api.onMaximizeChange((value) => setMaximized(value))
   }, [api])
 
-  if (!api) return null
+  // mac uses the native traffic lights; windows/linux use these in-app buttons
+  if (!api || window.electron?.platform === "darwin") return null
 
   // wrap bridge calls: passing api.minimize straight as onClick would forward
   // the React SyntheticEvent across the context bridge, which cannot be cloned

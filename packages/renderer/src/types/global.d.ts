@@ -45,6 +45,7 @@ declare global {
   interface Window {
     electron?: {
       versions: { chrome: string; node: string; electron: string }
+      platform: string
       window?: {
         minimize: () => void
         toggleMaximize: () => void

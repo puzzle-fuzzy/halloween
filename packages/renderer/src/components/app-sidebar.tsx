@@ -22,6 +22,7 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar"
+import { cn } from "@/lib/utils"
 
 const data = {
   user: {
@@ -83,10 +84,17 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  // mac traffic lights overlay the top-left of this header row — keep clear
+  const isMac = window.electron?.platform === "darwin"
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <div className="flex h-8 w-full items-center gap-2 p-1.5 [-webkit-app-region:drag]">
+        <div
+          className={cn(
+            "flex h-8 w-full items-center gap-2 p-1.5 [-webkit-app-region:drag]",
+            isMac && "pl-20"
+          )}
+        >
           <IconInnerShadowTop className="size-5" />
           <span className="text-base font-semibold">Acme Inc.</span>
         </div>
