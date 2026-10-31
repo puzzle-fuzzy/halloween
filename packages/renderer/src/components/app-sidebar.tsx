@@ -22,7 +22,6 @@ import {
   SidebarFooter,
   SidebarHeader,
 } from "@/components/ui/sidebar"
-import { cn } from "@/lib/utils"
 
 const data = {
   navMain: [
@@ -84,14 +83,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
       <SidebarHeader>
-        <div
-          className={cn(
-            "flex h-8 w-full items-center gap-2 p-1.5 [-webkit-app-region:drag]",
-            isMac && "pl-20"
+        {/* mac: the row stays as an empty drag strip under the traffic lights;
+            windows/linux keep the brand logo + title */}
+        <div className="flex h-8 w-full items-center gap-2 p-1.5 [-webkit-app-region:drag]">
+          {!isMac && (
+            <>
+              <IconInnerShadowTop className="size-5" />
+              <span className="text-base font-semibold">Acme Inc.</span>
+            </>
           )}
-        >
-          <IconInnerShadowTop className="size-5" />
-          <span className="text-base font-semibold">Acme Inc.</span>
         </div>
       </SidebarHeader>
       <SidebarContent>
