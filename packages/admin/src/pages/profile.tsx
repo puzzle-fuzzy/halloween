@@ -18,6 +18,7 @@ export default function ProfilePage() {
   const [profile, setProfile] = React.useState<Profile | null>(null)
   const [saving, setSaving] = React.useState(false)
   const [message, setMessage] = React.useState('')
+  const fileInput = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
     void (async () => {
@@ -93,31 +94,34 @@ export default function ProfilePage() {
           <div className="flex flex-col gap-2">
             <Label className="sr-only">Avatar</Label>
             <Input
+              ref={fileInput}
               type="file"
               accept="image/*"
-              className="w-64"
-              onChange={(e) => pickAvatar(e.target.files?.[0])}
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                e.target.value = ''
+                pickAvatar(file)
+              }}
             />
-            {profile.avatar && (
-              <Button variant="ghost" size="sm" className="w-fit" onClick={() => set({ avatar: '' })}>
-                <IconX />
-                Remove
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => fileInput.current?.click()}
+              >
+                <IconUpload />
+                Upload image
               </Button>
-            )}
-            <p className="text-muted-foreground text-xs">
-              Image under 300 KB, or paste an https URL below.
-            </p>
+              {profile.avatar && (
+                <Button variant="ghost" size="sm" onClick={() => set({ avatar: '' })}>
+                  <IconX />
+                  Remove
+                </Button>
+              )}
+            </div>
+            <p className="text-muted-foreground text-xs">PNG / JPG / WebP, up to 300 KB</p>
           </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="avatar-url">Avatar URL</Label>
-          <Input
-            id="avatar-url"
-            placeholder="https://…"
-            value={profile.avatar.startsWith('data:') ? '' : profile.avatar}
-            onChange={(e) => set({ avatar: e.target.value })}
-          />
         </div>
 
         <div className="space-y-2">
@@ -152,3 +156,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+
