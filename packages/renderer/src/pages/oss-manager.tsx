@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner"
 
 import { TransferPanel } from "@/components/cloud/transfer-panel"
+import { useCloudAuth } from "@/components/cloud/auth"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -73,8 +74,11 @@ interface PromptState {
 }
 
 export default function OssManagerPage() {
+  const { authed, login } = useCloudAuth()
   const oss = window.electron?.oss
   const cloud = window.electron?.cloud
+  const [signingIn, setSigningIn] = React.useState(false)
+  const [signInError, setSignInError] = React.useState("")
 
   const [accounts, setAccounts] = React.useState<OssAccountInfo[] | null>(null)
   const [accountId, setAccountId] = React.useState("")
@@ -91,6 +95,7 @@ export default function OssManagerPage() {
   const [preview, setPreview] = React.useState<{ name: string; url: string } | null>(null)
 
   React.useEffect(() => {
+    if (!authed) return
     oss
       ?.accounts()
       .then((res) => setAccounts(res.accounts))
@@ -98,7 +103,7 @@ export default function OssManagerPage() {
         setAccounts([])
         toast.error(String(e))
       })
-  }, [oss])
+  }, [oss, authed])
 
   React.useEffect(() => {
     if (!accountId) {
@@ -228,6 +233,44 @@ export default function OssManagerPage() {
   const visible = filter
     ? entries.filter((e) => e.name.toLowerCase().includes(filter))
     : entries
+
+  const startSignIn = async () => {
+    if (signingIn) return
+    setSigningIn(true)
+    setSignInError("")
+    try {
+      await login()
+    } catch (e) {
+      setSignInError(String(e))
+    } finally {
+      setSigningIn(false)
+    }
+  }
+
+  if (authed === null || authed === false) {
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3">
+        {authed === null ? (
+          <p className="text-muted-foreground text-sm">Loading…</p>
+        ) : (
+          <>
+            <p className="text-sm">Sign in to use the OSS manager</p>
+            {signingIn ? (
+              <p className="text-muted-foreground flex items-center gap-2 text-sm">
+                <IconRefresh className="size-4 animate-spin" />
+                Complete the authorization in your browser…
+              </p>
+            ) : (
+              <Button size="sm" onClick={() => void startSignIn()}>
+                Sign in with browser
+              </Button>
+            )}
+            {signInError && <p className="text-destructive text-sm">{signInError}</p>}
+          </>
+        )}
+      </div>
+    )
+  }
 
   if (accounts === null) {
     return (
