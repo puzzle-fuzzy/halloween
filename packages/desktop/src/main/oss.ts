@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-import { apiJson, progressReporter, uniqueTarget } from './cloud'
+import { getConfig, progressReporter, uniqueTarget } from './cloud'
 import type { TransferProgress } from './cloud'
 
 export interface OssAccountInfo {
@@ -25,6 +25,28 @@ export interface OssEntry {
   type: 'dir' | 'file'
   size: number
   mtime: number
+}
+
+/** OSS API lives at <site-origin>/oss — NOT under the cloud serverUrl prefix */
+async function ossApiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
+  const config = await getConfig()
+  if (!config.serverUrl || !config.token) {
+    throw new Error('OSS is not available. Sign in from the OSS or cloud drive page first.')
+  }
+  const base = new URL(config.serverUrl).origin + '/oss'
+  const res = await fetch(base + pathname, {
+    ...init,
+    headers: {
+      Authorization: `Bearer ${config.token}`,
+      'Content-Type': 'application/json',
+      ...(init?.headers ?? {}),
+    },
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`HTTP ${res.status} ${text}`.slice(0, 200))
+  }
+  return res.json() as Promise<T>
 }
 
 function countedStream(
@@ -60,7 +82,7 @@ async function uploadFiles(
     const name = path.basename(local)
     const key = prefix + name
     const { size } = await fsp.stat(local)
-    const { url } = await apiJson<{ url: string }>(
+    const { url } = await ossApiJson<{ url: string }>(
       `/oss/api/accounts/${accountId}/sign`,
       {
         method: 'POST',
@@ -85,41 +107,41 @@ async function uploadFiles(
 }
 
 export function registerOssHandlers(getWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('oss:accounts', () => apiJson<{ accounts: OssAccountInfo[] }>('/oss/api/accounts'))
+  ipcMain.handle('oss:accounts', () => ossApiJson<{ accounts: OssAccountInfo[] }>('/oss/api/accounts'))
 
   ipcMain.handle('oss:buckets', (_e, accountId: string) =>
-    apiJson<{ buckets: OssBucketInfo[] }>(`/oss/api/accounts/${accountId}/buckets`)
+    ossApiJson<{ buckets: OssBucketInfo[] }>(`/oss/api/accounts/${accountId}/buckets`)
   )
 
   ipcMain.handle('oss:objects', (_e, accountId: string, bucket: string, prefix: string) =>
-    apiJson<{ entries: OssEntry[]; truncated: boolean }>(
+    ossApiJson<{ entries: OssEntry[]; truncated: boolean }>(
       `/oss/api/accounts/${accountId}/objects?bucket=${encodeURIComponent(bucket)}&prefix=${encodeURIComponent(prefix)}`
     )
   )
 
   ipcMain.handle('oss:preview-url', (_e, accountId: string, bucket: string, key: string) =>
-    apiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
+    ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
       method: 'POST',
       body: JSON.stringify({ bucket, key, method: 'GET' }),
     })
   )
 
   ipcMain.handle('oss:mkdir', (_e, accountId: string, bucket: string, key: string) =>
-    apiJson(`/oss/api/accounts/${accountId}/mkdir`, {
+    ossApiJson(`/oss/api/accounts/${accountId}/mkdir`, {
       method: 'POST',
       body: JSON.stringify({ bucket, key }),
     })
   )
 
   ipcMain.handle('oss:rename', (_e, accountId: string, bucket: string, from: string, to: string) =>
-    apiJson(`/oss/api/accounts/${accountId}/rename`, {
+    ossApiJson(`/oss/api/accounts/${accountId}/rename`, {
       method: 'POST',
       body: JSON.stringify({ bucket, from, to }),
     })
   )
 
   ipcMain.handle('oss:delete', (_e, accountId: string, bucket: string, keys: string[]) =>
-    apiJson(`/oss/api/accounts/${accountId}/delete`, {
+    ossApiJson(`/oss/api/accounts/${accountId}/delete`, {
       method: 'POST',
       body: JSON.stringify({ bucket, keys }),
     })
@@ -147,7 +169,7 @@ export function registerOssHandlers(getWindow: () => BrowserWindow | null): void
   ipcMain.handle(
     'oss:download-to',
     async (_e, accountId: string, bucket: string, key: string, name: string, targetDir: string) => {
-      const { url } = await apiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
+      const { url } = await ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
         method: 'POST',
         body: JSON.stringify({ bucket, key, method: 'GET' }),
       })
