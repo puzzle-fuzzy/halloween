@@ -55,6 +55,8 @@ import { fileKind, formatBytes, formatTime } from "@/lib/format"
 import type { OssAccountInfo, OssBucketInfo, OssEntry } from "@/types/global"
 
 const ADMIN_URL = "https://halloween.yxswy.com/admin/#/oss-accounts"
+const LAST_ACCOUNT_KEY = "oss:lastAccount"
+const LAST_BUCKET_KEY = "oss:lastBucket"
 
 function entryIcon(entry: OssEntry) {
   if (entry.type === "dir") return <IconFolder className="text-muted-foreground size-4 shrink-0" />
@@ -98,7 +100,11 @@ export default function OssManagerPage() {
     if (!authed) return
     oss
       ?.accounts()
-      .then((res) => setAccounts(res.accounts))
+      .then((res) => {
+        setAccounts(res.accounts)
+        const saved = localStorage.getItem(LAST_ACCOUNT_KEY)
+        if (saved && res.accounts.some((a) => a.id === saved)) setAccountId(saved)
+      })
       .catch((e) => {
         setAccounts([])
         toast.error(String(e))
@@ -115,7 +121,12 @@ export default function OssManagerPage() {
       ?.buckets(accountId)
       .then((res) => {
         setBuckets(res.buckets)
-        setBucket(res.buckets[0]?.name ?? "")
+        const saved = localStorage.getItem(LAST_BUCKET_KEY)
+        setBucket(
+          saved && res.buckets.some((b) => b.name === saved)
+            ? saved
+            : (res.buckets[0]?.name ?? "")
+        )
       })
       .catch((e) => toast.error(String(e)))
   }, [accountId, oss])
@@ -234,6 +245,17 @@ export default function OssManagerPage() {
     ? entries.filter((e) => e.name.toLowerCase().includes(filter))
     : entries
 
+  const pickAccount = (id: string) => {
+    setAccountId(id)
+    localStorage.setItem(LAST_ACCOUNT_KEY, id)
+  }
+
+  const pickBucket = (name: string) => {
+    setBucket(name)
+    setPrefix("")
+    localStorage.setItem(LAST_BUCKET_KEY, name)
+  }
+
   const startSignIn = async () => {
     if (signingIn) return
     setSigningIn(true)
@@ -312,84 +334,88 @@ export default function OssManagerPage() {
         if (paths.length > 0) void upload(paths)
       }}
     >
-      <div className="flex flex-wrap items-center gap-2">
-        <Select value={accountId} onValueChange={setAccountId}>
-          <SelectTrigger size="sm" className="w-40">
-            <SelectValue placeholder="Account" />
-          </SelectTrigger>
-          <SelectContent>
-            {accounts.map((a) => (
-              <SelectItem key={a.id} value={a.id}>
-                {a.name}
-              </SelectItem>
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Select value={accountId} onValueChange={pickAccount}>
+            <SelectTrigger size="sm" className="w-40">
+              <SelectValue placeholder="Account" />
+            </SelectTrigger>
+            <SelectContent>
+              {accounts.map((a) => (
+                <SelectItem key={a.id} value={a.id}>
+                  {a.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={bucket} onValueChange={pickBucket}>
+            <SelectTrigger size="sm" className="w-52">
+              <SelectValue placeholder="Bucket" />
+            </SelectTrigger>
+            <SelectContent>
+              {buckets.map((b) => (
+                <SelectItem key={b.name} value={b.name}>
+                  {b.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <div className="ml-auto flex items-center gap-2">
+            <Input
+              placeholder="Filter"
+              className="w-36 md:w-48"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPrompt({ mode: "mkdir", value: "" })}
+              disabled={!bucket}
+            >
+              <IconFolderPlus />
+              New Folder
+            </Button>
+            <Button size="sm" onClick={() => void upload()} disabled={!bucket}>
+              <IconUpload />
+              Upload
+            </Button>
+          </div>
+        </div>
+        <div className="flex min-w-0 items-center gap-1 text-sm">
+          {segments.length > 0 && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-7 shrink-0"
+              aria-label="Back"
+              onClick={() => {
+                const cut = segments.slice(0, -1)
+                setPrefix(cut.length > 0 ? cut.join("/") + "/" : "")
+              }}
+            >
+              <IconArrowLeft className="size-4" />
+            </Button>
+          )}
+          <nav className="flex min-w-0 flex-wrap items-center gap-1">
+            <button
+              className="hover:bg-accent rounded px-1.5 py-0.5"
+              onClick={() => setPrefix("")}
+            >
+              root
+            </button>
+            {segments.map((segment, i) => (
+              <React.Fragment key={i}>
+                <IconChevronRight className="text-muted-foreground size-3.5 shrink-0" />
+                <button
+                  className="hover:bg-accent rounded px-1.5 py-0.5"
+                  onClick={() => setPrefix(segments.slice(0, i + 1).join("/") + "/")}
+                >
+                  {segment}
+                </button>
+              </React.Fragment>
             ))}
-          </SelectContent>
-        </Select>
-        <Select value={bucket} onValueChange={(v) => { setBucket(v); setPrefix("") }}>
-          <SelectTrigger size="sm" className="w-52">
-            <SelectValue placeholder="Bucket" />
-          </SelectTrigger>
-          <SelectContent>
-            {buckets.map((b) => (
-              <SelectItem key={b.name} value={b.name}>
-                {b.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {segments.length > 0 && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="size-7"
-            aria-label="Back"
-            onClick={() => {
-              const cut = segments.slice(0, -1)
-              setPrefix(cut.length > 0 ? cut.join("/") + "/" : "")
-            }}
-          >
-            <IconArrowLeft className="size-4" />
-          </Button>
-        )}
-        <nav className="flex min-w-0 items-center gap-1 text-sm">
-          <button
-            className="hover:bg-accent rounded px-1.5 py-0.5"
-            onClick={() => setPrefix("")}
-          >
-            root
-          </button>
-          {segments.map((segment, i) => (
-            <React.Fragment key={i}>
-              <IconChevronRight className="text-muted-foreground size-3.5 shrink-0" />
-              <button
-                className="hover:bg-accent rounded px-1.5 py-0.5"
-                onClick={() => setPrefix(segments.slice(0, i + 1).join("/") + "/")}
-              >
-                {segment}
-              </button>
-            </React.Fragment>
-          ))}
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
-          <Input
-            placeholder="Filter"
-            className="w-36 md:w-48"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setPrompt({ mode: "mkdir", value: "" })}
-            disabled={!bucket}
-          >
-            <IconFolderPlus />
-            New Folder
-          </Button>
-          <Button size="sm" onClick={() => void upload()} disabled={!bucket}>
-            <IconUpload />
-            Upload
-          </Button>
+          </nav>
         </div>
       </div>
 
