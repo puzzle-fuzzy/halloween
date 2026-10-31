@@ -208,6 +208,10 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
     return Boolean((await getConfig()).token)
   })
 
+  ipcMain.handle('cloud:profile', () =>
+    apiJson<{ profile: { name: string; email: string; avatar: string } }>('/api/profile')
+  )
+
   ipcMain.handle('cloud:list', (_e, dir: string) =>
     apiJson<{ entries: CloudEntry[] }>(`/api/files?path=${encodeURIComponent(dir)}`)
   )

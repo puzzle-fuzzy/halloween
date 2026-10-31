@@ -11,13 +11,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { IconBucket, IconDevices, IconGauge, IconLogout, IconShieldHalf } from "@tabler/icons-react"
+import { IconBucket, IconDevices, IconGauge, IconLogout, IconShieldHalf, IconUserCircle } from "@tabler/icons-react"
 import { adminApi } from "@/lib/api"
 
 const nav = [
   { title: "Overview", to: "/", icon: IconGauge },
   { title: "Devices", to: "/tokens", icon: IconDevices },
   { title: "OSS Accounts", to: "/oss-accounts", icon: IconBucket },
+  { title: "Profile", to: "/profile", icon: IconUserCircle },
 ]
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

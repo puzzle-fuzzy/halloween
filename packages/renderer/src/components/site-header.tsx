@@ -1,6 +1,5 @@
 import { useLocation } from "react-router-dom"
 
-import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { WindowControls } from "@/components/window-controls"
@@ -38,16 +37,6 @@ export function SiteHeader() {
           {titles[pathname] ?? "Halloween"}
         </h1>
         <div aria-hidden="true" className="min-w-4 flex-1 [-webkit-app-region:drag]" />
-        <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-          <a
-            href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="dark:text-foreground"
-          >
-            GitHub
-          </a>
-        </Button>
       </div>
       <WindowControls />
     </header>

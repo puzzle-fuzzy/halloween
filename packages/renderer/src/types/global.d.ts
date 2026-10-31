@@ -88,6 +88,9 @@ declare global {
         login: () => Promise<{ ok: boolean }>
         logout: () => Promise<void>
         isAuthed: () => Promise<boolean>
+        profile: () => Promise<{
+          profile: { name: string; email: string; avatar: string }
+        }>
         list: (dir: string) => Promise<{ entries: CloudEntry[] }>
         mkdir: (dir: string) => Promise<unknown>
         rename: (from: string, to: string) => Promise<unknown>

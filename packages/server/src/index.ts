@@ -134,6 +134,34 @@ function isValidAdminSession(value: string | undefined): boolean {
   return signature === expected
 }
 
+// ---------------------------------------------------------------- user profile
+
+interface UserProfile {
+  name: string
+  email: string
+  avatar: string
+}
+
+const PROFILE_FILE = path.join(DATA_ROOT, '.profile.json')
+let profile: UserProfile = { name: '', email: '', avatar: '' }
+
+async function loadProfile(): Promise<void> {
+  try {
+    const raw = JSON.parse(await fs.readFile(PROFILE_FILE, 'utf-8')) as Partial<UserProfile>
+    profile = {
+      name: typeof raw.name === 'string' ? raw.name : '',
+      email: typeof raw.email === 'string' ? raw.email : '',
+      avatar: typeof raw.avatar === 'string' ? raw.avatar : '',
+    }
+  } catch {
+    profile = { name: '', email: '', avatar: '' }
+  }
+}
+async function saveProfile(): Promise<void> {
+  await fs.writeFile(PROFILE_FILE, JSON.stringify(profile, null, 2), 'utf-8')
+}
+await loadProfile()
+
 // ----------------------------------------------------------------------- apps
 
 const cloud = new Hono()
@@ -324,6 +352,9 @@ cloud.get('/api/search', async (c) => {
 
 cloud.get('/api/check', (c) => c.json({ ok: true }))
 
+// profile shown in signed-in desktop clients
+cloud.get('/api/profile', (c) => c.json({ profile }))
+
 // raw file stream; in production nginx takes /cloud/f/ over (alias + auth_request)
 cloud.get('/f/*', async (c) => {
   const marker = c.req.path.indexOf('/f/')
@@ -368,6 +399,27 @@ admin.post('/api/logout', (c) => {
 })
 
 admin.get('/api/session', (c) => c.json({ ok: true }))
+
+const MAX_AVATAR_LEN = 512 * 1024
+
+admin.get('/api/profile', (c) => c.json({ profile }))
+
+admin.post('/api/profile', async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as Partial<UserProfile>
+  const name = typeof body.name === 'string' ? body.name.trim().slice(0, 64) : profile.name
+  const email = typeof body.email === 'string' ? body.email.trim().slice(0, 128) : profile.email
+  const avatar =
+    typeof body.avatar === 'string' ? body.avatar.trim().slice(0, MAX_AVATAR_LEN) : profile.avatar
+  if (avatar && !/^(https:\/\/|data:image\/)/.test(avatar)) {
+    return c.json({ error: 'avatar must be an https URL or a data:image URL' }, 400)
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: 'invalid email' }, 400)
+  }
+  profile = { name, email, avatar }
+  await saveProfile()
+  return c.json({ profile })
+})
 
 admin.get('/api/stats', async (c) => {
   const statfs = await fs.statfs(DATA_ROOT).catch(() => null)
