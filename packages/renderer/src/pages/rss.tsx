@@ -5,7 +5,13 @@ import { useCloudAuth } from "@/components/cloud/auth"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { formatTime } from "@/lib/format"
 import type { RssItem } from "@/types/global"
 
@@ -91,16 +97,19 @@ export default function RssPage() {
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex flex-wrap items-center gap-2">
         {feedNames.length > 1 && (
-          <Tabs value={feed} onValueChange={setFeed}>
-            <TabsList className="max-w-full overflow-x-auto">
-              <TabsTrigger value="all">All</TabsTrigger>
+          <Select value={feed} onValueChange={setFeed}>
+            <SelectTrigger size="sm" className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
               {feedNames.map((name) => (
-                <TabsTrigger key={name} value={name}>
+                <SelectItem key={name} value={name}>
                   {name}
-                </TabsTrigger>
+                </SelectItem>
               ))}
-            </TabsList>
-          </Tabs>
+            </SelectContent>
+          </Select>
         )}
         <span className="text-muted-foreground ml-auto text-xs">
           Updated {data?.refreshedAt ? formatTime(data.refreshedAt) : "—"}
@@ -111,7 +120,8 @@ export default function RssPage() {
         </Button>
       </div>
 
-      <div className="flex-1 overflow-auto [scrollbar-gutter:stable]">
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-auto [scrollbar-gutter:stable]">
         {loading && items.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
             <IconRefresh className="size-4 animate-spin" />
@@ -164,6 +174,7 @@ export default function RssPage() {
             ))}
           </div>
         )}
+        </div>
       </div>
     </div>
   )

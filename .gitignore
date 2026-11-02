@@ -6,3 +6,4 @@ release/
 .env
 .local-data/
 packages/server/public/
+packages/desktop/resources/

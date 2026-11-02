@@ -10,6 +10,7 @@ const titles: Record<string, string> = {
   "/cloud": "Cloud",
   "/oss": "OSS",
   "/rss": "RSS",
+  "/proxy": "Proxy",
 }
 
 export function SiteHeader() {

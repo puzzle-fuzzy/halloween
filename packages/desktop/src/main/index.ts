@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
+import { registerProxyHandlers, shutdownProxy } from './proxy'
 import { registerRssHandlers } from './rss'
 
 const devServerUrl = process.env['VITE_DEV_SERVER_URL']
@@ -87,6 +88,7 @@ void app.whenReady().then(() => {
   registerCloudHandlers(() => mainWindow)
   registerOssHandlers(() => mainWindow)
   registerRssHandlers()
+  registerProxyHandlers()
   void createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
@@ -95,6 +97,12 @@ void app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
+})
+
+// kill the core and clear the system proxy — a dead 127.0.0.1 proxy breaks
+// the machine's networking, so this must run before exit
+app.on('will-quit', () => {
+  shutdownProxy()
 })
 
 

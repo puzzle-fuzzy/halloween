@@ -51,6 +51,31 @@ export interface RssItem {
   summary: string
 }
 
+export interface ProxySubscriptionInfo {
+  id: string
+  name: string
+  url: string
+  updatedAt: number
+  nodeCount: number
+}
+
+export interface ProxyState {
+  running: boolean
+  busy: boolean
+  sysProxy: boolean
+  mode: 'sys' | 'tun'
+  tunReady: boolean
+  mixedPort: number
+  subscriptions: ProxySubscriptionInfo[]
+  nodeCount: number
+  lastError: string
+}
+
+export interface ProxyNodes {
+  current: string
+  nodes: { name: string; delay: number }[]
+}
+
 declare global {
   interface Window {
     electron?: {
@@ -97,6 +122,19 @@ declare global {
       rss?: {
         items: (limit?: number) => Promise<{ refreshedAt: number; items: RssItem[] }>
         open: (url: string) => Promise<void>
+      }
+      proxy?: {
+        state: () => Promise<ProxyState>
+        enable: () => Promise<ProxyState>
+        disable: () => Promise<ProxyState>
+        setMode: (mode: 'sys' | 'tun') => Promise<ProxyState>
+        installTun: () => Promise<ProxyState>
+        addSubscription: (url: string) => Promise<ProxyState>
+        deleteSubscription: (id: string) => Promise<ProxyState>
+        updateSubscription: (id: string) => Promise<ProxyState>
+        nodes: () => Promise<ProxyNodes>
+        select: (name: string) => Promise<ProxyNodes>
+        testAll: () => Promise<ProxyNodes>
       }
       cloud?: {
         login: () => Promise<{ ok: boolean }>

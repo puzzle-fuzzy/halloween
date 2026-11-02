@@ -70,4 +70,17 @@ contextBridge.exposeInMainWorld('electron', {
     items: (limit?: number) => ipcRenderer.invoke('rss:items', limit),
     open: (url: string) => ipcRenderer.invoke('rss:open', url),
   },
+  proxy: {
+    state: () => ipcRenderer.invoke('proxy:state'),
+    enable: () => ipcRenderer.invoke('proxy:enable'),
+    disable: () => ipcRenderer.invoke('proxy:disable'),
+    setMode: (mode: 'sys' | 'tun') => ipcRenderer.invoke('proxy:set-mode', mode),
+    installTun: () => ipcRenderer.invoke('proxy:install-tun'),
+    addSubscription: (url: string) => ipcRenderer.invoke('proxy:subs:add', url),
+    deleteSubscription: (id: string) => ipcRenderer.invoke('proxy:subs:delete', id),
+    updateSubscription: (id: string) => ipcRenderer.invoke('proxy:subs:update', id),
+    nodes: () => ipcRenderer.invoke('proxy:nodes'),
+    select: (name: string) => ipcRenderer.invoke('proxy:select', name),
+    testAll: () => ipcRenderer.invoke('proxy:test-all'),
+  },
 })

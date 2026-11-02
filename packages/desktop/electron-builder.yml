@@ -4,6 +4,9 @@ directories:
   output: release
 files:
   - dist/**
+extraResources:
+  - from: resources/mihomo.exe
+    to: mihomo.exe
 win:
   target:
     - nsis
