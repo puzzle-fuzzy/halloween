@@ -82,5 +82,18 @@ contextBridge.exposeInMainWorld('electron', {
     nodes: () => ipcRenderer.invoke('proxy:nodes'),
     select: (name: string) => ipcRenderer.invoke('proxy:select', name),
     testAll: () => ipcRenderer.invoke('proxy:test-all'),
+    onTraffic: (
+      callback: (sample: {
+        up: number
+        down: number
+        upTotal: number
+        downTotal: number
+        ts: number
+      }) => void
+    ) => {
+      const listener = (_event: unknown, sample: unknown) => callback(sample as never)
+      ipcRenderer.on('proxy:traffic', listener)
+      return () => ipcRenderer.removeListener('proxy:traffic', listener)
+    },
   },
 })

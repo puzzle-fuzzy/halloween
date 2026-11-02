@@ -136,6 +136,15 @@ declare global {
         nodes: () => Promise<ProxyNodes>
         select: (name: string) => Promise<ProxyNodes>
         testAll: () => Promise<ProxyNodes>
+        onTraffic: (
+          callback: (sample: {
+            up: number
+            down: number
+            upTotal: number
+            downTotal: number
+            ts: number
+          }) => void
+        ) => () => void
       }
       cloud?: {
         login: () => Promise<{ ok: boolean }>

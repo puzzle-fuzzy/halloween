@@ -88,7 +88,7 @@ void app.whenReady().then(() => {
   registerCloudHandlers(() => mainWindow)
   registerOssHandlers(() => mainWindow)
   registerRssHandlers()
-  registerProxyHandlers()
+  registerProxyHandlers(() => mainWindow)
   void createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

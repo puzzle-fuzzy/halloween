@@ -14,6 +14,12 @@ export function formatTime(mtime: number): string {
   return formatDate(date, pattern)
 }
 
+/** bytes-per-second rate for the live traffic chart */
+export function formatSpeed(bytesPerSec: number): string {
+  if (!Number.isFinite(bytesPerSec) || bytesPerSec <= 0) return "0 B/s"
+  return `${prettyBytes(bytesPerSec)}/s`
+}
+
 export type FileKind = "image" | "video" | "audio" | "archive" | "other"
 
 // extension map instead of mime-types: that lib needs node:path, which does not

@@ -5,6 +5,7 @@ import fsp from 'node:fs/promises'
 import net from 'node:net'
 import path from 'node:path'
 import { app, ipcMain, net as electronNet } from 'electron'
+import type { BrowserWindow } from 'electron'
 import { stringify as stringifyYaml } from 'yaml'
 import { parseSubscriptionBody, uniqueNames } from './proxy-parse'
 import type { ClashProxy } from './proxy-parse'
@@ -56,6 +57,8 @@ let core: ReturnType<typeof spawn> | null = null
 let coreLog = ''
 let stopping = false
 let tunWatchdog: ReturnType<typeof setInterval> | null = null
+let getWin: () => BrowserWindow | null = () => null
+let trafficAbort: AbortController | null = null
 
 // ------------------------------------------------------------------ storage
 
@@ -255,6 +258,54 @@ function stopTunWatchdog(): void {
   }
 }
 
+/** mihomo streams one {"up","down"} json object per second on /traffic —
+ * forward each sample to the renderer for the live chart */
+async function startTrafficSampler(): Promise<void> {
+  stopTrafficSampler()
+  const ac = new AbortController()
+  trafficAbort = ac
+  try {
+    const res = await fetch(`http://127.0.0.1:${state.ctrlPort}/traffic`, {
+      headers: { Authorization: `Bearer ${config.secret}` },
+      signal: ac.signal,
+    })
+    if (!res.ok || !res.body) return
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buf = ''
+    for (;;) {
+      const { done, value } = await reader.read()
+      if (done || ac.signal.aborted) break
+      buf += decoder.decode(value, { stream: true })
+      const lines = buf.split('\n')
+      buf = lines.pop() ?? ''
+      for (const line of lines) {
+        const s = line.trim()
+        if (!s) continue
+        try {
+          const t = JSON.parse(s) as { up: number; down: number; upTotal?: number; downTotal?: number }
+          getWin()?.webContents.send('proxy:traffic', {
+            up: t.up ?? 0,
+            down: t.down ?? 0,
+            upTotal: t.upTotal ?? 0,
+            downTotal: t.downTotal ?? 0,
+            ts: Date.now(),
+          })
+        } catch {
+          // partial line — wait for more bytes
+        }
+      }
+    }
+  } catch {
+    // core stopped — the stream ends by itself
+  }
+}
+
+function stopTrafficSampler(): void {
+  trafficAbort?.abort()
+  trafficAbort = null
+}
+
 function binaryPath(): string {
   const dev = path.join(__dirname, '../../resources/mihomo.exe')
   if (fs.existsSync(dev)) return dev
@@ -387,6 +438,7 @@ async function startCore(): Promise<void> {
     }
     state.running = true
     if (tun) startTunWatchdog()
+    void startTrafficSampler()
   } catch (err) {
     if (tun) await endTunTask().catch(() => {})
     killCore()
@@ -406,6 +458,7 @@ function killCore(): void {
 
 async function stopCore(): Promise<void> {
   stopTunWatchdog()
+  stopTrafficSampler()
   if (config.mode === 'tun') await endTunTask()
   killCore()
   state.running = false
@@ -484,6 +537,7 @@ async function setSystemProxy(enable: boolean): Promise<void> {
 export function shutdownProxy(): void {
   killCore()
   stopTunWatchdog()
+  stopTrafficSampler()
   if (process.platform === 'win32') {
     if (config.mode === 'tun') {
       try {
@@ -568,7 +622,8 @@ async function proxyDisable(): Promise<void> {
   await stopCore()
 }
 
-export function registerProxyHandlers(): void {
+export function registerProxyHandlers(getWindow: () => BrowserWindow | null): void {
+  getWin = getWindow
   void loadConfig().then(async () => {
     state.tunReady = await taskExists()
   })
