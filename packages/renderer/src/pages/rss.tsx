@@ -121,7 +121,7 @@ export default function RssPage() {
       </div>
 
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-auto [scrollbar-gutter:stable]">
+        <div className="h-full overflow-y-scroll">
         {loading && items.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
             <IconRefresh className="size-4 animate-spin" />
