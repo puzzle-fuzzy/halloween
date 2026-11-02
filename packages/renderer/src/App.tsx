@@ -10,6 +10,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import CloudDrivePage from "@/pages/cloud-drive"
 import DashboardPage from "@/pages/dashboard"
 import OssManagerPage from "@/pages/oss-manager"
+import RssPage from "@/pages/rss"
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
                   <Route path="/" element={<DashboardPage />} />
                   <Route path="/cloud" element={<CloudDrivePage />} />
                   <Route path="/oss" element={<OssManagerPage />} />
+                  <Route path="/rss" element={<RssPage />} />
                 </Routes>
               </div>
             </SidebarInset>

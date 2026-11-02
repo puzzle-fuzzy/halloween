@@ -2,6 +2,7 @@ import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
+import { registerRssHandlers } from './rss'
 
 const devServerUrl = process.env['VITE_DEV_SERVER_URL']
 
@@ -85,6 +86,7 @@ win.webContents.on('render-process-gone', (_event, details) =>
 void app.whenReady().then(() => {
   registerCloudHandlers(() => mainWindow)
   registerOssHandlers(() => mainWindow)
+  registerRssHandlers()
   void createWindow()
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

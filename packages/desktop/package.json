@@ -1,6 +1,6 @@
 {
   "name": "@halloween/desktop",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "Electron shell: main process, preload, packaging",
   "main": "dist/main/index.js",

@@ -41,6 +41,16 @@ export interface OssEntry {
   mtime: number
 }
 
+export interface RssItem {
+  id: string
+  feedId: string
+  feedTitle: string
+  title: string
+  link: string
+  publishedAt: number
+  summary: string
+}
+
 declare global {
   interface Window {
     electron?: {
@@ -83,6 +93,10 @@ declare global {
           name: string,
           targetDir: string
         ) => Promise<string>
+      }
+      rss?: {
+        items: (limit?: number) => Promise<{ refreshedAt: number; items: RssItem[] }>
+        open: (url: string) => Promise<void>
       }
       cloud?: {
         login: () => Promise<{ ok: boolean }>

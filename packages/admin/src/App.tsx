@@ -9,6 +9,7 @@ import LoginPage from "@/pages/login"
 import OssAccountsPage from "@/pages/oss-accounts"
 import OverviewPage from "@/pages/overview"
 import ProfilePage from "@/pages/profile"
+import RssPage from "@/pages/rss"
 import TokensPage from "@/pages/tokens"
 
 function Shell() {
@@ -43,6 +44,7 @@ export default function App() {
         <Route index element={<OverviewPage />} />
         <Route path="tokens" element={<TokensPage />} />
         <Route path="oss-accounts" element={<OssAccountsPage />} />
+        <Route path="rss" element={<RssPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

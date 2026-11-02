@@ -8,6 +8,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { logger } from 'hono/logger'
 import { getCookie, setCookie } from 'hono/cookie'
 import { createOssApp, registerOssAdmin } from './oss'
+import { initRss, registerRssAdmin, registerRssCloud } from './rss'
 
 const PORT = Number(process.env.PORT ?? 3690)
 const DATA_ROOT = path.resolve(process.env.DATA_ROOT ?? './data')
@@ -161,6 +162,8 @@ async function saveProfile(): Promise<void> {
   await fs.writeFile(PROFILE_FILE, JSON.stringify(profile, null, 2), 'utf-8')
 }
 await loadProfile()
+
+await initRss({ dataRoot: DATA_ROOT })
 
 // ----------------------------------------------------------------------- apps
 
@@ -471,7 +474,11 @@ admin.post('/api/device/approve', async (c) => {
 
 // oss account management must register BEFORE the static catch-all below,
 // or admin.get('*') swallows every later-added GET route
+// feature routes must register BEFORE the static catch-all below and before
+// root.route() mounts the sub-apps, or they are silently ignored
 registerOssAdmin(admin)
+registerRssAdmin(admin)
+registerRssCloud(cloud)
 
 // ----------------------------------------------------------------- admin: static
 

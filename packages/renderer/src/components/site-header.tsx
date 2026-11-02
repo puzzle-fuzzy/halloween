@@ -9,6 +9,7 @@ const titles: Record<string, string> = {
   "/": "Dashboard",
   "/cloud": "Cloud",
   "/oss": "OSS",
+  "/rss": "RSS",
 }
 
 export function SiteHeader() {

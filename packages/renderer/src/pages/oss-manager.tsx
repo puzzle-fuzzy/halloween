@@ -519,7 +519,7 @@ export default function OssManagerPage() {
                       {formatTime(entry.mtime)}
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
+                      <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="size-7">
                             <IconDots className="size-4" />

@@ -7,6 +7,7 @@ const titles: Record<string, string> = {
   "/": "Overview",
   "/tokens": "Devices",
   "/oss-accounts": "OSS Accounts",
+  "/rss": "RSS Feeds",
 }
 
 export function SiteHeader() {

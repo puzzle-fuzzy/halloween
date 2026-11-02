@@ -66,4 +66,8 @@ contextBridge.exposeInMainWorld('electron', {
     downloadTo: (accountId: string, bucket: string, key: string, name: string, targetDir: string) =>
       ipcRenderer.invoke('oss:download-to', accountId, bucket, key, name, targetDir),
   },
+  rss: {
+    items: (limit?: number) => ipcRenderer.invoke('rss:items', limit),
+    open: (url: string) => ipcRenderer.invoke('rss:open', url),
+  },
 })

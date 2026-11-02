@@ -10,6 +10,7 @@ import {
   IconSettings,
   IconFileWord,
   IconBucket,
+  IconRss,
 } from "@tabler/icons-react"
 
 import { NavDocuments } from "@/components/nav-documents"
@@ -39,6 +40,11 @@ const data = {
       title: "OSS",
       to: "/oss",
       icon: IconBucket,
+    },
+    {
+      title: "RSS",
+      to: "/rss",
+      icon: IconRss,
     },
   ],
   navSecondary: [
