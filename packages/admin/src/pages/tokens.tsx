@@ -21,17 +21,20 @@ interface Device {
 
 export default function TokensPage() {
   const [devices, setDevices] = React.useState<Device[] | null>(null)
+  const [error, setError] = React.useState('')
+  const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(async () => {
-    if (!(await checkSession())) {
-      window.location.hash = '#/login'
-      return
-    }
     try {
+      setError('')
+      if (!(await checkSession())) {
+        window.location.hash = '#/login'
+        return
+      }
       const res = await adminApi<{ devices: Device[] }>('/devices')
       setDevices(res.devices)
-    } catch {
-      setDevices([])
+    } catch (e) {
+      setError(String(e))
     }
   }, [])
 
@@ -40,12 +43,20 @@ export default function TokensPage() {
   }, [load])
 
   const revoke = async (device: Device) => {
+    if (busy) return
     if (!window.confirm(`Revoke ${device.name}? The device will need to sign in again.`)) return
-    await adminApi('/devices/revoke', {
-      method: 'POST',
-      body: JSON.stringify({ id: device.id }),
-    })
-    void load()
+    setBusy(true)
+    try {
+      await adminApi('/devices/revoke', {
+        method: 'POST',
+        body: JSON.stringify({ id: device.id }),
+      })
+      await load()
+    } catch (e) {
+      setError(String(e))
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -59,7 +70,7 @@ export default function TokensPage() {
         </Button>
       </div>
       <div className="flex-1 overflow-hidden rounded-lg border">
-        {devices === null ? (
+        {error ? <p role="alert" className="text-destructive p-4 text-sm">{error}</p> : devices === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
             Loading…
           </div>
@@ -90,6 +101,7 @@ export default function TokensPage() {
                         size="icon"
                         className="text-destructive hover:text-destructive"
                         aria-label="Revoke"
+                        disabled={busy}
                         onClick={() => void revoke(device)}
                       >
                         <IconTrash className="size-4" />

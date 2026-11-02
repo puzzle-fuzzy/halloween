@@ -48,13 +48,16 @@ export default function OssAccountsPage() {
   const [accounts, setAccounts] = React.useState<Account[] | null>(null)
   const [dialog, setDialog] = React.useState<DialogState | null>(null)
   const [error, setError] = React.useState("")
+  const [loadError, setLoadError] = React.useState("")
+  const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(async () => {
     try {
+      setLoadError('')
       const res = await adminApi<{ accounts: Account[] }>('/oss-accounts')
       setAccounts(res.accounts)
-    } catch {
-      window.location.hash = '#/login'
+    } catch (e) {
+      setLoadError(String(e))
     }
   }, [])
 
@@ -63,7 +66,8 @@ export default function OssAccountsPage() {
   }, [load])
 
   const save = async () => {
-    if (!dialog) return
+    if (!dialog || busy) return
+    setBusy(true)
     setError("")
     const body = {
       id: dialog.id,
@@ -82,16 +86,26 @@ export default function OssAccountsPage() {
       void load()
     } catch (e) {
       setError(String(e))
+    } finally {
+      setBusy(false)
     }
   }
 
   const remove = async (account: Account) => {
+    if (busy) return
     if (!window.confirm(`Delete account "${account.name}"?`)) return
-    await adminApi('/oss-accounts/delete', {
-      method: 'POST',
-      body: JSON.stringify({ id: account.id }),
-    })
-    void load()
+    setBusy(true)
+    try {
+      await adminApi('/oss-accounts/delete', {
+        method: 'POST',
+        body: JSON.stringify({ id: account.id }),
+      })
+      await load()
+    } catch (e) {
+      setLoadError(String(e))
+    } finally {
+      setBusy(false)
+    }
   }
 
   const fields: { key: keyof DialogState; label: string; placeholder: string; secret?: boolean }[] = [
@@ -107,15 +121,16 @@ export default function OssAccountsPage() {
         <p className="text-muted-foreground text-sm">
           Aliyun OSS connections — credentials are stored on the server only.
         </p>
-        <Button size="sm" className="ml-auto" onClick={() => setDialog({ ...emptyDialog })}>
+        <Button size="sm" className="ml-auto" disabled={busy} onClick={() => { setError(''); setDialog({ ...emptyDialog }) }}>
           <IconPlus />
           Add Account
         </Button>
       </div>
+      {loadError && <div role="alert" className="flex items-center justify-between gap-4 text-sm"><p className="text-destructive">{loadError}</p><Button variant="outline" onClick={() => void load()}>Retry</Button></div>}
       <div className="flex-1 overflow-hidden rounded-lg border">
         {accounts === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Loading…
+            {loadError ? 'Accounts could not be loaded' : 'Loading…'}
           </div>
         ) : accounts.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
@@ -143,7 +158,9 @@ export default function OssAccountsPage() {
                           size="icon"
                           className="size-7"
                           aria-label="Edit"
-                          onClick={() =>
+                          disabled={busy}
+                          onClick={() => {
+                            setError('')
                             setDialog({
                               mode: 'edit',
                               id: account.id,
@@ -152,7 +169,7 @@ export default function OssAccountsPage() {
                               accessKeyId: '',
                               accessKeySecret: '',
                             })
-                          }
+                          }}
                         >
                           <IconPencil className="size-4" />
                         </Button>
@@ -161,6 +178,7 @@ export default function OssAccountsPage() {
                           size="icon"
                           className="text-destructive hover:text-destructive size-7"
                           aria-label="Delete"
+                          disabled={busy}
                           onClick={() => void remove(account)}
                         >
                           <IconTrash className="size-4" />
@@ -175,12 +193,12 @@ export default function OssAccountsPage() {
         )}
       </div>
 
-      <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
+      <Dialog open={dialog !== null} onOpenChange={(o) => !o && !busy && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{dialog?.mode === 'create' ? 'Add OSS Account' : 'Edit OSS Account'}</DialogTitle>
           </DialogHeader>
-          <div className="flex flex-col gap-4">
+          <fieldset disabled={busy} className="flex flex-col gap-4">
             {fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-2">
                 <Label htmlFor={`oss-${f.key}`}>
@@ -199,21 +217,22 @@ export default function OssAccountsPage() {
               </div>
             ))}
             {error && <p className="text-destructive text-sm">{error}</p>}
-          </div>
+          </fieldset>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialog(null)}>
+            <Button variant="outline" disabled={busy} onClick={() => setDialog(null)}>
               Cancel
             </Button>
             <Button
               onClick={() => void save()}
               disabled={
+                busy ||
                 !dialog?.name.trim() ||
                 !dialog?.region.trim() ||
                 (dialog.mode === 'create' &&
                   (!dialog.accessKeyId.trim() || !dialog.accessKeySecret.trim()))
               }
             >
-              {dialog?.mode === 'create' ? 'Add' : 'Save'}
+              {busy ? 'Saving…' : dialog?.mode === 'create' ? 'Add' : 'Save'}
             </Button>
           </DialogFooter>
         </DialogContent>

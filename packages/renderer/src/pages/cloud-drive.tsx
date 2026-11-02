@@ -1,4 +1,5 @@
 import * as React from "react"
+import { Link } from "react-router-dom"
 import {
   IconArrowLeft,
   IconChevronRight,
@@ -10,7 +11,6 @@ import {
   IconFolderPlus,
   IconMusic,
   IconPhoto,
-  IconPlayerPlay,
   IconRefresh,
   IconUpload,
   IconVideo,
@@ -18,8 +18,8 @@ import {
 import { toast } from "sonner"
 import { useDebounce } from "use-debounce"
 
-import { TransferPanel } from "@/components/cloud/transfer-panel"
 import { useCloudAuth } from "@/components/cloud/auth"
+import { MediaPreview } from "@/components/cloud/media-preview"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
@@ -45,6 +45,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { fileKind, formatBytes, formatTime } from "@/lib/format"
+import { createRequestTracker, fileOperationError, isTransferCancelled } from "@/lib/file-operations"
 import type { CloudEntry } from "@/types/global"
 
 function entryIcon(entry: CloudEntry) {
@@ -65,163 +66,179 @@ interface PromptState {
 }
 
 export default function CloudDrivePage() {
-  const { authed, login } = useCloudAuth()
+  const { authed, login, error: authError, retry, authCode, signingIn, handleError } = useCloudAuth()
   const cloud = window.electron?.cloud
-  const [signingIn, setSigningIn] = React.useState(false)
   const [signInError, setSignInError] = React.useState("")
-
   const [currentPath, setCurrentPath] = React.useState("/")
   const [entries, setEntries] = React.useState<CloudEntry[]>([])
   const [loading, setLoading] = React.useState(false)
+  const [working, setWorking] = React.useState(false)
   const [error, setError] = React.useState("")
+  const [deleteNotice, setDeleteNotice] = React.useState("")
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
   const [searchInput, setSearchInput] = React.useState("")
-  const [searchQ, setSearchQ] = useDebounce("", 300)
+  const [searchQ] = useDebounce(searchInput, 300)
   const [dragOver, setDragOver] = React.useState(false)
   const [prompt, setPrompt] = React.useState<PromptState | null>(null)
-  const [preview, setPreview] = React.useState<{ entry: CloudEntry; url: string } | null>(null)
+  const [preview, setPreview] = React.useState<{ entry: CloudEntry; url: string; scope: string } | null>(null)
+  const requests = React.useRef(createRequestTracker()).current
+  const scope = `${currentPath}\0${searchInput}`
+  const scopeRef = React.useRef(scope)
+  scopeRef.current = scope
+  const busy = loading || working
 
-  const load = React.useCallback(
-    async (dir: string) => {
-      if (!cloud) return
-      setLoading(true)
-      setError("")
-      try {
-        const res = await cloud.list(dir)
-        setEntries(res.entries)
-      } catch (e) {
-        setError(String(e))
-      } finally {
-        setLoading(false)
-      }
-    },
-    [cloud]
-  )
+  const reportError = React.useCallback((e: unknown) => {
+    if (isTransferCancelled(e)) { toast.info("Transfer cancelled"); return }
+    handleError(e)
+    toast.error(fileOperationError(e))
+  }, [handleError])
 
-  React.useEffect(() => {
-    if (authed && !searchQ) void load(currentPath)
-  }, [authed, currentPath, searchQ, load])
-
-  React.useEffect(() => {
-    if (!authed || !searchQ.trim()) return
-    cloud!
-      .search(searchQ.trim())
-      .then((res) => setEntries(res.entries))
-      .catch((e) => toast.error(String(e)))
-  }, [searchQ, authed, cloud])
-
-  const navigate = (dir: string) => {
-    setCurrentPath(dir)
+  const load = React.useCallback(async (dir: string, query = "") => {
+    if (!cloud) return
+    const request = requests.start()
+    setLoading(true)
+    setError("")
+    setEntries([])
     setSelected(new Set())
-    setSearchInput("")
-    setSearchQ("")
-  }
+    try {
+      const res = query.trim() ? await cloud.search(query.trim()) : await cloud.list(dir)
+      if (requests.isCurrent(request)) setEntries(res.entries)
+    } catch (e) {
+      if (!requests.isCurrent(request)) return
+      setError(fileOperationError(e))
+      handleError(e)
+    } finally {
+      if (requests.isCurrent(request)) setLoading(false)
+    }
+  }, [cloud, requests, handleError])
 
-  const selectedEntries = entries.filter((e) => selected.has(e.path))
+  React.useEffect(() => {
+    if (authed && searchQ === searchInput) void load(currentPath, searchQ)
+    return () => requests.invalidate()
+  }, [authed, currentPath, searchQ, searchInput, load, requests])
+
+  const clearListing = () => {
+    requests.invalidate()
+    setEntries([])
+    setSelected(new Set())
+    setLoading(true)
+    setError("")
+    setPrompt(null)
+    setPreview(null)
+  }
+  const navigate = (dir: string) => {
+    if (dir === currentPath && !searchInput) {
+      void load(dir)
+      return
+    }
+    clearListing()
+    setCurrentPath(dir)
+    setSearchInput("")
+  }
+  const selectedEntries = entries.filter((entry) => selected.has(entry.path))
 
   const upload = async (localPaths?: string[]) => {
-    if (!cloud) return
+    if (!cloud || busy) return
+    const target = scope
+    setWorking(true)
     try {
-      const uploaded =
-        localPaths && localPaths.length > 0
-          ? await cloud.uploadFiles(localPaths, currentPath)
-          : await cloud.pickAndUpload(currentPath)
-      // empty result = user canceled the picker, nothing to report
-      if (!uploaded || uploaded.length === 0) return
+      const uploaded = localPaths?.length
+        ? await cloud.uploadFiles(localPaths, currentPath)
+        : await cloud.pickAndUpload(currentPath)
+      if (!uploaded?.length) return
       toast.success("Upload complete")
-      void load(currentPath)
-    } catch (e) {
-      toast.error(String(e))
-    }
+      if (scopeRef.current === target) void load(currentPath, searchQ)
+    } catch (e) { reportError(e) }
+    finally { setWorking(false) }
   }
 
   const download = async (list: CloudEntry[]) => {
-    const files = list.filter((e) => e.type === "file")
-    if (files.length === 0 || !cloud) return
-    const dir = await cloud.chooseDownloadDir()
-    if (!dir) return
+    const files = list.filter((entry) => entry.type === "file")
+    if (!files.length || !cloud || busy) return
     try {
-      for (const f of files) {
-        await cloud.downloadTo(f.path, f.name, dir)
-      }
+      const dir = await cloud.chooseDownloadDir()
+      if (!dir) return
+      for (const file of files) await cloud.downloadTo(file.path, file.name, dir)
       toast.success(`Saved to ${dir}`)
-    } catch (e) {
-      toast.error(String(e))
-    }
+    } catch (e) { reportError(e) }
   }
 
   const remove = async (list: CloudEntry[]) => {
-    if (!cloud || list.length === 0) return
-    if (!window.confirm(`Delete ${list.length} item${list.length > 1 ? "s" : ""}?`)) return
+    if (!cloud || !list.length || busy) return
+    const includesFolders = list.some((entry) => entry.type === "dir")
+    if (!window.confirm(`Move ${list.length} item${list.length > 1 ? "s" : ""} to Trash?${includesFolders ? " Folder contents will move with them." : ""} You can restore them from Trash.`)) return
+    const target = scope
+    setWorking(true)
+    setDeleteNotice("")
     try {
-      await cloud.remove(list.map((e) => e.path))
-      setSelected(new Set())
-      void load(currentPath)
+      await cloud.remove(list.map((entry) => entry.path))
+      toast.success("Moved selected items to Trash")
+      if (scopeRef.current === target) await load(currentPath, searchQ)
     } catch (e) {
-      toast.error(String(e))
-    }
+      reportError(e)
+      if (scopeRef.current === target) {
+        setDeleteNotice(`Some items may already have moved to Trash. Review the current list and Trash before trying again. ${fileOperationError(e)}`)
+        await load(currentPath, searchQ)
+      }
+    } finally { setWorking(false) }
   }
 
   const onEntryClick = (entry: CloudEntry) => {
-    if (entry.type === "dir") {
-      navigate(entry.path)
-      return
-    }
+    if (busy) return
+    if (entry.type === "dir") { navigate(entry.path); return }
     const kind = fileKind(entry.name)
     if (kind === "image" || kind === "video" || kind === "audio") {
-      void cloud?.fileUrl(entry.path).then((url) => setPreview({ entry, url }))
-    } else {
-      void download([entry])
-    }
+      const target = scope
+      void cloud?.fileUrl(entry.path).then((url) => {
+        if (scopeRef.current === target) setPreview({ entry, url, scope: target })
+      }).catch(reportError)
+    } else void download([entry])
   }
 
   const submitPrompt = async () => {
-    if (!prompt || !cloud) return
+    if (!prompt || !cloud || busy) return
     const value = prompt.value.trim()
     if (!value) return
+    if (/[/\\]/.test(value) || value === "." || value === "..") {
+      toast.error("Enter a name without path separators.")
+      return
+    }
+    const target = scope
+    setWorking(true)
     try {
-      if (prompt.mode === "mkdir") {
-        await cloud.mkdir(currentPath === "/" ? `/${value}` : `${currentPath}/${value}`)
-      } else if (prompt.target) {
+      if (prompt.mode === "mkdir") await cloud.mkdir(currentPath === "/" ? `/${value}` : `${currentPath}/${value}`)
+      else if (prompt.target) {
         const parent = prompt.target.path.slice(0, prompt.target.path.lastIndexOf("/")) || "/"
         await cloud.rename(prompt.target.path, parent === "/" ? `/${value}` : `${parent}/${value}`)
       }
-      setPrompt(null)
-      void load(currentPath)
-    } catch (e) {
-      toast.error(String(e))
-    }
+      if (scopeRef.current === target) { setPrompt(null); void load(currentPath, searchQ) }
+    } catch (e) { reportError(e) }
+    finally { setWorking(false) }
   }
 
-  const toggle = (path: string) =>
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(path)) next.delete(path)
-      else next.add(path)
-      return next
-    })
-
+  const toggle = (path: string) => setSelected((previous) => {
+    const next = new Set(previous)
+    if (next.has(path)) next.delete(path)
+    else next.add(path)
+    return next
+  })
   const segments = currentPath.split("/").filter(Boolean)
-  const allSelected = entries.length > 0 && entries.every((e) => selected.has(e.path))
-
+  const allSelected = entries.length > 0 && entries.every((entry) => selected.has(entry.path))
   const startSignIn = async () => {
     if (signingIn) return
-    setSigningIn(true)
     setSignInError("")
-    try {
-      await login()
-    } catch (e) {
-      setSignInError(String(e))
-    } finally {
-      setSigningIn(false)
-    }
+    try { await login() }
+    catch (e) { setSignInError(String(e)) }
   }
 
   if (authed === null || authed === false) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         {authed === null ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <div className="flex max-w-lg flex-col items-center gap-3 text-sm">
+            <p className={authError ? "text-destructive" : "text-muted-foreground"}>{authError || "Loading…"}</p>
+            {authError && <Button variant="outline" size="sm" onClick={() => void retry()}>Retry connection</Button>}
+          </div>
         ) : (
           <>
             <p className="text-sm">Sign in to use the cloud drive</p>
@@ -229,13 +246,14 @@ export default function CloudDrivePage() {
               <p className="text-muted-foreground flex items-center gap-2 text-sm">
                 <IconRefresh className="size-4 animate-spin" />
                 Complete the authorization in your browser…
+                {authCode && <span className="font-mono font-semibold">Code: {authCode.userCode}</span>}
               </p>
             ) : (
               <Button size="sm" onClick={() => void startSignIn()}>
                 Sign in with browser
               </Button>
             )}
-            {signInError && <p className="text-destructive text-sm">{signInError}</p>}
+            {(signInError || authError) && <p className="text-destructive text-sm">{signInError || authError}</p>}
           </>
         )}
       </div>
@@ -299,29 +317,31 @@ export default function CloudDrivePage() {
             className="w-44 md:w-56"
             value={searchInput}
             onChange={(e) => {
+              clearListing()
               setSearchInput(e.target.value)
-              setSearchQ(e.target.value)
             }}
           />
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPrompt({ mode: "mkdir", value: "" })}
+            disabled={busy} onClick={() => setPrompt({ mode: "mkdir", value: "" })}
           >
             <IconFolderPlus />
             New Folder
           </Button>
-          <Button size="sm" onClick={() => void upload()}>
+          <Button size="sm" disabled={busy} onClick={() => void upload()}>
             <IconUpload />
             Upload
           </Button>
         </div>
       </div>
 
+      {deleteNotice && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive flex-1 break-words">{deleteNotice}</p><Button asChild variant="outline" size="sm"><Link to="/trash">View Trash</Link></Button></div>}
+
       {selected.size > 0 && (
         <div className="bg-muted/50 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
           {selected.size} selected
-          <Button variant="outline" size="sm" onClick={() => void download(selectedEntries)}>
+          <Button variant="outline" size="sm" disabled={busy} onClick={() => void download(selectedEntries)}>
             <IconDownload />
             Download
           </Button>
@@ -329,7 +349,7 @@ export default function CloudDrivePage() {
             variant="outline"
             size="sm"
             className="text-destructive hover:text-destructive"
-            onClick={() => void remove(selectedEntries)}
+            disabled={busy} onClick={() => void remove(selectedEntries)}
           >
             Delete
           </Button>
@@ -348,7 +368,7 @@ export default function CloudDrivePage() {
         ) : error ? (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-destructive text-sm">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => void load(currentPath)}>
+            <Button variant="outline" size="sm" onClick={() => void load(currentPath, searchQ)}>
               Retry
             </Button>
           </div>
@@ -364,6 +384,7 @@ export default function CloudDrivePage() {
                   <TableHead className="w-10 pl-3">
                     <Checkbox
                       checked={allSelected}
+                      disabled={busy}
                       onCheckedChange={(v) =>
                         setSelected(v === true ? new Set(entries.map((e) => e.path)) : new Set())
                       }
@@ -382,6 +403,7 @@ export default function CloudDrivePage() {
                     <TableCell className="pl-3">
                       <Checkbox
                         checked={selected.has(entry.path)}
+                        disabled={busy}
                         onCheckedChange={() => toggle(entry.path)}
                         aria-label={entry.name}
                       />
@@ -420,14 +442,14 @@ export default function CloudDrivePage() {
                               Download
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem
+                          <DropdownMenuItem disabled={busy}
                             onClick={() =>
                               setPrompt({ mode: "rename", value: entry.name, target: entry })
                             }
                           >
                             Rename
                           </DropdownMenuItem>
-                          <DropdownMenuItem variant="destructive" onClick={() => void remove([entry])}>
+                          <DropdownMenuItem disabled={busy} variant="destructive" onClick={() => void remove([entry])}>
                             Delete
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -446,15 +468,15 @@ export default function CloudDrivePage() {
         )}
       </div>
 
-      <TransferPanel />
 
-      <Dialog open={prompt !== null} onOpenChange={(o) => !o && setPrompt(null)}>
+      <Dialog open={prompt !== null} onOpenChange={(o) => !o && !working && setPrompt(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>{prompt?.mode === "mkdir" ? "New Folder" : "Rename"}</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
+            disabled={working}
             value={prompt?.value ?? ""}
             onChange={(e) => prompt && setPrompt({ ...prompt, value: e.target.value })}
             onKeyDown={(e) => {
@@ -462,10 +484,10 @@ export default function CloudDrivePage() {
             }}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setPrompt(null)}>
+            <Button variant="outline" disabled={working} onClick={() => setPrompt(null)}>
               Cancel
             </Button>
-            <Button onClick={() => void submitPrompt()} disabled={!prompt?.value.trim()}>
+            <Button onClick={() => void submitPrompt()} disabled={busy || !prompt?.value.trim()}>
               {prompt?.mode === "mkdir" ? "Create" : "Rename"}
             </Button>
           </DialogFooter>
@@ -477,21 +499,17 @@ export default function CloudDrivePage() {
           <DialogHeader>
             <DialogTitle className="truncate pr-8">{preview?.entry.name}</DialogTitle>
           </DialogHeader>
-          {preview &&
-            (fileKind(preview.entry.name) === "image" ? (
-              <img
-                src={preview.url}
-                alt={preview.entry.name}
-                className="max-h-[70vh] w-full object-contain"
-              />
-            ) : fileKind(preview.entry.name) === "video" ? (
-              <video src={preview.url} controls className="max-h-[70vh] w-full" />
-            ) : (
-              <div className="flex items-center justify-center gap-2 py-10">
-                <IconPlayerPlay className="text-muted-foreground size-5" />
-                <audio src={preview.url} controls />
-              </div>
-            ))}
+          {preview && <MediaPreview
+            key={preview.entry.path}
+            name={preview.entry.name}
+            url={preview.url}
+            refreshUrl={async () => {
+              if (!cloud || scopeRef.current !== preview.scope) throw new Error("Preview is no longer available")
+              return cloud.fileUrl(preview.entry.path)
+            }}
+            onUrlChange={(url) => setPreview((current) => current?.entry.path === preview.entry.path && current.scope === preview.scope ? { ...current, url } : current)}
+            onRefreshError={handleError}
+          />}
           {preview && (
             <DialogFooter>
               <Button variant="outline" onClick={() => void download([preview.entry])}>

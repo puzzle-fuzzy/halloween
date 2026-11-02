@@ -7,3 +7,9 @@ files:
 win:
   target:
     - nsis
+mac:
+  category: public.app-category.utilities
+  target:
+    - dmg
+    - zip
+  hardenedRuntime: true

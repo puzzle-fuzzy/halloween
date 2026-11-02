@@ -6,3 +6,6 @@ release/
 .env
 .local-data/
 packages/server/public/
+packages/server/data/
+packages/server/state/
+.codegraph/

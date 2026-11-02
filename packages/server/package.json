@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "bun --watch src/index.ts",
     "start": "bun src/index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test test"
   },
   "dependencies": {
     "ali-oss": "^6.23.0",
-    "hono": "^4.13.14"
+    "hono": "^4.13.14",
+    "@halloween/contracts": "workspace:*"
   },
   "devDependencies": {
     "@types/ali-oss": "^6.23.4",

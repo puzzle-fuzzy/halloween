@@ -17,46 +17,59 @@ const MAX_AVATAR_BYTES = 300 * 1024
 export default function ProfilePage() {
   const [profile, setProfile] = React.useState<Profile | null>(null)
   const [saving, setSaving] = React.useState(false)
+  const [reading, setReading] = React.useState(false)
   const [message, setMessage] = React.useState('')
+  const [loadError, setLoadError] = React.useState('')
+  const [attempt, setAttempt] = React.useState(0)
   const fileInput = React.useRef<HTMLInputElement>(null)
 
   React.useEffect(() => {
+    const controller = new AbortController()
+    setLoadError('')
     void (async () => {
-      if (!(await checkSession())) {
-        window.location.hash = '#/login'
-        return
-      }
       try {
-        const res = await adminApi<{ profile: Profile }>('/profile')
-        setProfile(res.profile)
-      } catch {
-        setProfile({ name: '', email: '', avatar: '' })
+        if (!(await checkSession(controller.signal))) {
+          if (!controller.signal.aborted) window.location.hash = '#/login'
+          return
+        }
+        const res = await adminApi<{ profile: Profile }>('/profile', { signal: controller.signal })
+        if (!controller.signal.aborted) setProfile(res.profile)
+      } catch (e) {
+        if (!controller.signal.aborted) setLoadError(String(e))
       }
     })()
-  }, [])
+    return () => controller.abort()
+  }, [attempt])
 
   if (profile === null) {
     return (
-      <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
-        Loading…
+      <div className="text-muted-foreground flex flex-1 flex-col items-center justify-center gap-3 text-sm">
+        {loadError ? <><p role="alert">{loadError}</p><Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>Retry</Button></> : 'Loading…'}
       </div>
     )
   }
 
-  const set = (patch: Partial<Profile>) => setProfile({ ...profile, ...patch })
+  const set = (patch: Partial<Profile>) => setProfile((current) => current ? { ...current, ...patch } : current)
 
   const pickAvatar = (file: File | undefined) => {
-    if (!file) return
+    if (!file || saving || reading) return
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setMessage('Choose a PNG, JPG or WebP image')
+      return
+    }
     if (file.size > MAX_AVATAR_BYTES) {
       setMessage('Avatar image must be under 300 KB')
       return
     }
     const reader = new FileReader()
-    reader.onload = () => set({ avatar: String(reader.result) })
+    setReading(true)
+    reader.onerror = () => { setMessage('Could not read the image'); setReading(false) }
+    reader.onload = () => { set({ avatar: String(reader.result) }); setReading(false) }
     reader.readAsDataURL(file)
   }
 
   const save = async () => {
+    if (saving || reading) return
     setSaving(true)
     setMessage('')
     try {
@@ -78,7 +91,7 @@ export default function ProfilePage() {
       <p className="text-muted-foreground text-sm">
         Shown in the desktop app after it signs in.
       </p>
-      <div className="max-w-xl space-y-6 rounded-lg border p-6">
+      <fieldset disabled={saving || reading} className="max-w-xl space-y-6 rounded-lg border p-6">
         <div className="flex items-center gap-4">
           {profile.avatar ? (
             <img
@@ -147,12 +160,12 @@ export default function ProfilePage() {
 
         <div className="flex items-center justify-end gap-3">
           {message && <p className="text-muted-foreground text-sm">{message}</p>}
-          <Button size="sm" disabled={saving} onClick={() => void save()}>
+          <Button size="sm" disabled={saving || reading} onClick={() => void save()}>
             <IconUpload />
             {saving ? 'Saving…' : 'Save'}
           </Button>
         </div>
-      </div>
+      </fieldset>
     </div>
   )
 }

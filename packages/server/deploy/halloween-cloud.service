@@ -1,20 +1,30 @@
-# /etc/systemd/system/halloween-cloud.service
-# 部署时：修改 TOKEN；确认 WorkingDirectory（服务器代码目录）与 DATA_ROOT；bun 路径用 `which bun`
-# 然后: systemctl daemon-reload && systemctl enable --now halloween-cloud
-
+# Run as a dedicated user. Deploy the repository and install its frozen lockfile
+# dependencies in /srv/halloween-cloud-app before enabling.
 [Unit]
-Description=Halloween Cloud API
+Description=Halloween personal cloud API
 After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=/srv/halloween-cloud-app
+User=halloween
+Group=halloween
+WorkingDirectory=/srv/halloween-cloud-app/packages/server
 ExecStart=/usr/local/bin/bun run src/index.ts
+EnvironmentFile=/etc/halloween-cloud.env
+Environment=HOST=127.0.0.1
 Environment=PORT=3690
 Environment=DATA_ROOT=/srv/halloween-cloud
-Environment=TOKEN=CHANGE_ME
-Environment=ADMIN_PASSWORD=CHANGE_ME_TOO
-Restart=always
+Environment=STATE_ROOT=/var/lib/halloween-cloud
+Environment=TRUST_PROXY=1
+Environment=SECURE_COOKIES=1
+Environment=PUBLIC_ORIGIN=https://halloween.yxswy.com
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/srv/halloween-cloud /var/lib/halloween-cloud
+Restart=on-failure
 RestartSec=3
 
 [Install]
