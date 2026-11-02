@@ -11,6 +11,7 @@ import {
   IconFolderPlus,
   IconMusic,
   IconPhoto,
+  IconLink,
   IconPlayerPlay,
   IconRefresh,
   IconUpload,
@@ -177,6 +178,17 @@ export default function OssManagerPage() {
         await oss.downloadTo(accountId, bucket, f.key, f.name, dir)
       }
       toast.success(`Saved to ${dir}`)
+    } catch (e) {
+      toast.error(String(e))
+    }
+  }
+
+  const copyLink = async (entry: OssEntry) => {
+    if (!oss) return
+    try {
+      const { url } = await oss.previewUrl(accountId, bucket, entry.key)
+      await navigator.clipboard.writeText(url)
+      toast.success("Link copied — valid for 1 hour")
     } catch (e) {
       toast.error(String(e))
     }
@@ -462,7 +474,7 @@ export default function OssManagerPage() {
             {filter ? "No matches" : "Empty folder"}
           </div>
         ) : (
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto [scrollbar-gutter:stable]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -518,6 +530,12 @@ export default function OssManagerPage() {
                             <DropdownMenuItem onClick={() => void download([entry])}>
                               <IconDownload />
                               Download
+                            </DropdownMenuItem>
+                          )}
+                          {entry.type === "file" && (
+                            <DropdownMenuItem onClick={() => void copyLink(entry)}>
+                              <IconLink />
+                              Copy Link
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem
@@ -592,6 +610,17 @@ export default function OssManagerPage() {
             ))}
           {preview && (
             <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() =>
+                  void navigator.clipboard
+                    .writeText(preview.url)
+                    .then(() => toast.success("Link copied — valid for 1 hour"))
+                }
+              >
+                <IconLink />
+                Copy Link
+              </Button>
               <Button
                 variant="outline"
                 onClick={() => window.open(preview.url, "_blank")}

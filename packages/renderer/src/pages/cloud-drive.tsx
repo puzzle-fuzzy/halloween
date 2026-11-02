@@ -357,7 +357,7 @@ export default function CloudDrivePage() {
             {searchQ ? "No results" : "Empty folder"}
           </div>
         ) : (
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto [scrollbar-gutter:stable]">
             <Table>
               <TableHeader>
                 <TableRow>

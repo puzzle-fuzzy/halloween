@@ -68,7 +68,7 @@ export default function TokensPage() {
             No authorized devices
           </div>
         ) : (
-          <div className="h-full overflow-auto">
+          <div className="h-full overflow-auto [scrollbar-gutter:stable]">
             <Table>
               <TableHeader>
                 <TableRow>

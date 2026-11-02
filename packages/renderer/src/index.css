@@ -124,3 +124,29 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* native scrollbar, restyled; stable gutter avoids layout shift when it
+   appears/disappears — no JS replacement, zero perf cost */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+@layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
