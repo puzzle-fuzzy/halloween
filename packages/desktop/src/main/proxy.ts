@@ -289,7 +289,9 @@ async function coreApi<T>(route: string, init?: RequestInit): Promise<T> {
     },
   })
   if (!res.ok) throw new Error(`core api ${route}: HTTP ${res.status}`)
-  return res.json() as Promise<T>
+  // e.g. PUT switch answers 204 No Content — res.json() would throw on it
+  const text = await res.text()
+  return (text ? JSON.parse(text) : undefined) as T
 }
 
 async function writeCoreConfig(proxies: ClashProxy[], tun: boolean): Promise<void> {
@@ -416,10 +418,21 @@ const WININET_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Interne
 const BYPASS =
   'localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;172.21.*;172.22.*;172.23.*;172.24.*;172.25.*;172.26.*;172.27.*;172.28.*;172.29.*;172.30.*;172.31.*;192.168.*;<local>'
 const PS_REFRESH =
-  "$sig='[DllImport(\"wininet.dll\")]public static extern bool InternetSetOption(IntPtr h,int o,IntPtr b,int l);'" +
+  "$sig='[DllImport(\"wininet.dll\")]public static extern bool InternetSetOption(IntPtr h,int o,IntPtr b,int l);';" +
   '$t=Add-Type -MemberDefinition $sig -Name W -Namespace P -PassThru;' +
   '[void]$t::InternetSetOption([IntPtr]::Zero,39,[IntPtr]::Zero,0);' +
   '[void]$t::InternetSetOption([IntPtr]::Zero,37,[IntPtr]::Zero,0)'
+
+function runPsRefresh(): Promise<void> {
+  // best effort — browsers re-read proxy settings on their own schedule;
+  // a failed refresh must not fail the whole enable/disable
+  return new Promise((resolve) => {
+    execFile('powershell', ['-NoProfile', '-Command', PS_REFRESH], { windowsHide: true }, (err) => {
+      if (err) console.error('[proxy] wininet refresh failed:', err.message)
+      resolve()
+    })
+  })
+}
 
 function reg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) =>
@@ -432,21 +445,38 @@ async function setSystemProxy(enable: boolean): Promise<void> {
     state.sysProxy = enable
     return
   }
-  await reg([
-    'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', enable ? '1' : '0', '/f',
-  ])
   if (enable) {
+    await reg([
+      'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '1', '/f',
+    ])
     await reg([
       'add', WININET_KEY, '/v', 'ProxyServer', '/t', 'REG_SZ', '/d',
       `127.0.0.1:${state.mixedPort}`, '/f',
     ])
     await reg(['add', WININET_KEY, '/v', 'ProxyOverride', '/t', 'REG_SZ', '/d', BYPASS, '/f'])
+  } else {
+    // only clear what we set — another client (clash verge) may own the
+    // system proxy right now and must not be switched off by us
+    const current = await new Promise<string>((resolve) => {
+      execFile(
+        'reg',
+        ['query', WININET_KEY, '/v', 'ProxyServer'],
+        { windowsHide: true },
+        (err, stdout) => {
+          const m = stdout ? /ProxyServer\s+REG_SZ\s+(\S+)/.exec(String(stdout)) : null
+          resolve(err || !m ? '' : m[1])
+        }
+      )
+    })
+    if (current && current !== `127.0.0.1:${state.mixedPort}`) {
+      state.sysProxy = false
+      return
+    }
+    await reg([
+      'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '0', '/f',
+    ])
   }
-  await new Promise<void>((resolve, reject) =>
-    execFile('powershell', ['-NoProfile', '-Command', PS_REFRESH], (err) =>
-      err ? reject(err) : resolve()
-    )
-  )
+  await runPsRefresh()
   state.sysProxy = enable
 }
 
@@ -533,7 +563,8 @@ async function proxyEnable(): Promise<void> {
 }
 
 async function proxyDisable(): Promise<void> {
-  if (state.sysProxy) await setSystemProxy(false)
+  // always run the clear — it is ownership-aware and heals a half-set state
+  await setSystemProxy(false)
   await stopCore()
 }
 
