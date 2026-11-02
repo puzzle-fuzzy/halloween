@@ -280,11 +280,25 @@ export default function ProxyPage() {
           <CardDescription className="text-xs">
             {state.running
               ? `${nodes?.nodes.length ?? 0} nodes · click to switch`
-              : "Start the proxy to load the node list"}
+              : state.cachedNodes.length > 0
+                ? `${state.cachedNodes.length} nodes · turn on to select and test`
+                : 'Start the proxy to load the node list'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="min-h-0 flex-1 overflow-auto px-4 [scrollbar-gutter:stable]">
-          {!state.running ? (
+        <CardContent className="min-h-0 flex-1 overflow-y-scroll px-4">
+          {!state.running && state.cachedNodes.length > 0 ? (
+            <div className="flex flex-col">
+              {state.cachedNodes.map((name) => (
+                <React.Fragment key={name}>
+                  <div className="text-muted-foreground flex w-full items-center gap-3 px-2 py-1.5 text-sm">
+                    <span className="truncate">{name}</span>
+                    <span className="ml-auto shrink-0 text-xs">—</span>
+                  </div>
+                  <Separator className="last:hidden" />
+                </React.Fragment>
+              ))}
+            </div>
+          ) : !state.running ? (
             <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
               <IconCircleX className="size-4" />
               Core not running

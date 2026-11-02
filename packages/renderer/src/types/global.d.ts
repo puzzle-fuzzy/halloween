@@ -68,6 +68,7 @@ export interface ProxyState {
   mixedPort: number
   subscriptions: ProxySubscriptionInfo[]
   nodeCount: number
+  cachedNodes: string[]
   lastError: string
 }
 

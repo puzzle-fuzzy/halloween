@@ -488,6 +488,10 @@ function publicState() {
     mixedPort: state.mixedPort,
     subscriptions: config.subscriptions,
     nodeCount: cachedNodeCount(),
+    /** node names from the last successful fetch — shown before the core runs */
+    cachedNodes: uniqueNames(
+      Object.values(config.subNodes).flat() as ClashProxy[]
+    ).map((p) => p.name),
     lastError: state.lastError,
   }
 }
