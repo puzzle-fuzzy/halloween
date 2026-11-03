@@ -266,6 +266,9 @@ async function doRefresh(): Promise<void> {
     if (!ids.has(id)) delete cache.byFeed[id]
   }
   cache.refreshedAt = Date.now()
+  // persist feeds too — refresh updates their counts, and a stateRoot move
+  // must not depend on a later CRUD write to copy the list across
+  await saveFeeds()
   await saveCache()
 }
 
