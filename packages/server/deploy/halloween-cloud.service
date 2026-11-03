@@ -1,5 +1,8 @@
 # Run as a dedicated user. Deploy the repository and install its frozen lockfile
 # dependencies in /srv/halloween-cloud-app before enabling.
+# Encrypted backups (Trash/Backups pages) need restic on PATH and these three
+# BACKUP_* vars; create the repo once with:
+#   RESTIC_REPOSITORY=... RESTIC_PASSWORD_FILE=... restic init
 [Unit]
 Description=Halloween personal cloud API
 After=network.target
@@ -18,12 +21,16 @@ Environment=STATE_ROOT=/var/lib/halloween-cloud
 Environment=TRUST_PROXY=1
 Environment=SECURE_COOKIES=1
 Environment=PUBLIC_ORIGIN=https://halloween.yxswy.com
+# restic repository for encrypted backups (local path or s3:/rest:/... backend)
+Environment=BACKUP_REPOSITORY=/srv/halloween-backup-repo
+Environment=BACKUP_PASSWORD_FILE=/etc/halloween/backup-password
+Environment=BACKUP_RESTIC_BINARY=/usr/local/bin/restic
 UMask=0077
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/srv/halloween-cloud /var/lib/halloween-cloud
+ReadWritePaths=/srv/halloween-cloud /var/lib/halloween-cloud /srv/halloween-backup-repo
 Restart=on-failure
 RestartSec=3
 
