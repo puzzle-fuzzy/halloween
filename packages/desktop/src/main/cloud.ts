@@ -1,18 +1,17 @@
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
-import { randomUUID } from 'node:crypto'
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron'
 import os from 'node:os'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-import throttle from 'lodash/throttle'
-
-export const DEFAULT_SERVER_URL = 'https://halloween.yxswy.com/cloud'
-
-export interface CloudConfig {
-  serverUrl: string
-  token: string
-}
+import { setTimeout as delay } from 'node:timers/promises'
+import { applyServerOverride, createConfigStore, type CloudConfig } from './config-store'
+import { downloadFile } from './download'
+import { transfers } from './transfers'
+import { parseDevicePoll, SignInAttempt, verifySignIn } from './auth'
+import type { TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResult, BackupStatus, BackupJob, BackupStartInput } from '@halloween/contracts'
+export type { TransferProgress } from './transfers'
+export { DEFAULT_SERVER_URL } from './config-store'
 
 export interface CloudEntry {
   name: string
@@ -22,40 +21,31 @@ export interface CloudEntry {
   path: string
 }
 
-export interface TransferProgress {
-  id: string
-  kind: 'upload' | 'download'
-  name: string
-  loaded: number
-  total: number
-}
-
 let getWin: () => BrowserWindow | null = () => null
+const signIn = new SignInAttempt()
+const tokenCipher = {
+  isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
+  encryptString: (value: string) => safeStorage.encryptString(value),
+  decryptString: (value: Buffer) => safeStorage.decryptString(value),
+  getSelectedStorageBackend: () => process.platform === 'linux' ? safeStorage.getSelectedStorageBackend() : 'native',
+}
 
 function configPath(): string {
   return path.join(app.getPath('userData'), 'cloud-config.json')
 }
 
 async function getConfig(): Promise<CloudConfig> {
-  try {
-    const raw = JSON.parse(await fsp.readFile(configPath(), 'utf-8')) as Partial<CloudConfig>
-    return {
-      serverUrl: raw.serverUrl || DEFAULT_SERVER_URL,
-      token: raw.token ?? '',
-    }
-  } catch {
-    return { serverUrl: DEFAULT_SERVER_URL, token: '' }
-  }
+  const config = await createConfigStore(configPath(), tokenCipher).load()
+  return applyServerOverride(config, app.isPackaged ? undefined : process.env.HALLOWEEN_SERVER_URL)
 }
 
 async function saveConfig(config: CloudConfig): Promise<void> {
-  await fsp.mkdir(path.dirname(configPath()), { recursive: true })
-  await fsp.writeFile(configPath(), JSON.stringify(config, null, 2), 'utf-8')
+  await createConfigStore(configPath(), tokenCipher).save(config)
 }
 
 function assertConfigured(config: CloudConfig): void {
   if (!config.serverUrl || !config.token) {
-    throw new Error('Cloud drive is not configured. Set the server URL and token in Settings.')
+    throw new Error('Sign in to use the cloud drive.')
   }
 }
 
@@ -77,7 +67,7 @@ async function apiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-export { apiJson, progressReporter, uniqueTarget, getConfig }
+export { apiJson, getConfig }
 
 function encodeRemotePath(rel: string): string {
   return rel
@@ -88,24 +78,13 @@ function encodeRemotePath(rel: string): string {
 }
 
 function remoteFileUrl(config: CloudConfig, rel: string): string {
-  return `${config.serverUrl}/f/${encodeRemotePath(rel)}?token=${encodeURIComponent(config.token)}`
-}
-
-function sendProgress(p: TransferProgress): void {
-  getWin()?.webContents.send('cloud:progress', p)
-}
-
-function progressReporter(): { push: (p: TransferProgress) => void; flush: () => void } {
-  const throttled = throttle(sendProgress, 300)
-  return { push: throttled, flush: throttled.flush }
+  return `${config.serverUrl}/f/${encodeRemotePath(rel)}`
 }
 
 function countedUploadStream(
   filePath: string,
   id: string,
-  name: string,
   total: number,
-  report: { push: (p: TransferProgress) => void }
 ): ReadableStream<Uint8Array> {
   const nodeStream = fs.createReadStream(filePath)
   let loaded = 0
@@ -114,7 +93,7 @@ function countedUploadStream(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         loaded += chunk.byteLength
-        report.push({ id, kind: 'upload', name, loaded, total })
+        transfers.progress(id, loaded, total)
         controller.enqueue(chunk)
       },
     })
@@ -127,46 +106,52 @@ async function uploadFiles(localPaths: string[], remoteDir: string): Promise<{ n
   const uploaded: { name: string; size: number }[] = []
   for (const local of localPaths) {
     const name = path.basename(local)
-    const { size } = await fsp.stat(local)
-    const id = randomUUID()
-    const report = progressReporter()
-    const url = `${config.serverUrl}/api/upload?path=${encodeURIComponent(remoteDir)}&name=${encodeURIComponent(name)}`
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${config.token}` },
-      body: countedUploadStream(local, id, name, size, report),
-      duplex: 'half',
-    })
-    report.flush()
-    if (!res.ok) {
-      const text = await res.text().catch(() => '')
-      throw new Error(`Upload failed for ${name}: HTTP ${res.status} ${text}`.slice(0, 200))
+    const id = transfers.start('upload', name)
+    const signal = transfers.signal(id)
+    try {
+      const { size } = await fsp.stat(local)
+      transfers.progress(id, 0, size)
+      const url = `${config.serverUrl}/api/upload?path=${encodeURIComponent(remoteDir)}&name=${encodeURIComponent(name)}`
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${config.token}` },
+        body: countedUploadStream(local, id, size),
+        duplex: 'half',
+        signal,
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`Upload failed for ${name}: HTTP ${res.status} ${text}`.slice(0, 200))
+      }
+      uploaded.push({ name, size })
+      transfers.complete(id)
+    } catch (error) {
+      transfers.fail(id, error)
+      throw error
     }
-    uploaded.push({ name, size })
   }
   return uploaded
 }
 
-function uniqueTarget(dir: string, name: string): string {
-  const ext = path.extname(name)
-  const base = path.basename(name, ext)
-  let target = path.join(dir, name)
-  let i = 1
-  while (fs.existsSync(target)) {
-    target = path.join(dir, `${base} (${i})${ext}`)
-    i++
-  }
-  return target
-}
-
 export function registerCloudHandlers(getWindow: () => BrowserWindow | null): void {
   getWin = getWindow
+  transfers.notify = (progress) => getWin()?.webContents.send('cloud:progress', progress)
+  ipcMain.handle('cloud:transfers', () => transfers.list())
+  ipcMain.handle('cloud:cancel-transfer', (_e, id: string) => transfers.cancel(id))
+  ipcMain.handle('cloud:open-admin', async (_e, page: string = 'profile') => {
+    if (!['profile', 'tokens', 'oss-accounts'].includes(page)) throw new Error('Unknown administration page')
+    const url = new URL((await getConfig()).serverUrl)
+    if (!['https:', 'http:'].includes(url.protocol)) throw new Error('Invalid server URL')
+    await shell.openExternal(`${url.origin}/admin/#/${page}`)
+  })
 
-  ipcMain.handle('cloud:login', async () => {
+  ipcMain.handle('cloud:login', () => signIn.run(async (signal) => {
     const config = await getConfig()
+    signal.throwIfAborted()
     const api = async (pathname: string, init?: RequestInit) =>
       fetch(config.serverUrl + pathname, {
         ...init,
+        signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]),
         headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
       })
     const codeRes = await api('/api/device/code', {
@@ -176,36 +161,45 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
     if (!codeRes.ok) throw new Error(`Failed to start sign-in (HTTP ${codeRes.status})`)
     const device = (await codeRes.json()) as {
       device_code: string
+      user_code: string
       verify_url: string
       expires_in: number
     }
-    await shell.openExternal(device.verify_url)
+    if (!device.device_code || !device.user_code || !Number.isFinite(device.expires_in) || device.expires_in <= 0) throw new Error('The server returned an invalid device code')
     const deadline = Date.now() + Math.min(device.expires_in, 600) * 1000
+    getWin()?.webContents.send('cloud:auth-code', { userCode: device.user_code, expiresAt: deadline })
+    const verification = new URL(device.verify_url)
+    if (!['https:', 'http:'].includes(verification.protocol) || verification.origin !== new URL(config.serverUrl).origin) {
+      throw new Error('The server returned an invalid verification URL')
+    }
+    await shell.openExternal(verification.toString())
     for (;;) {
-      await new Promise((resolve) => setTimeout(resolve, 3000))
+      await delay(3000, undefined, { signal })
       if (Date.now() > deadline) throw new Error('Sign-in timed out')
       const tokenRes = await api('/api/device/token', {
         method: 'POST',
         body: JSON.stringify({ device_code: device.device_code }),
       })
-      if (tokenRes.status === 410) throw new Error('Sign-in expired, please try again')
-      if (tokenRes.status !== 200) continue
-      const result = (await tokenRes.json()) as { status: string; token?: string }
-      if (result.status === 'denied') throw new Error('Sign-in was denied')
-      if (result.status === 'approved' && result.token) {
-        await saveConfig({ serverUrl: config.serverUrl, token: result.token })
+      const result = tokenRes.ok ? await tokenRes.json() as { status: string; token?: string } : undefined
+      const token = parseDevicePoll(tokenRes.status, result)
+      if (token) {
+        signal.throwIfAborted()
+        await saveConfig({ serverUrl: config.serverUrl, token })
         return { ok: true }
       }
     }
-  })
+  }))
 
-  ipcMain.handle('cloud:logout', async () => {
+  ipcMain.handle('cloud:logout', () => signIn.cancel(async () => {
     const config = await getConfig()
     await saveConfig({ serverUrl: config.serverUrl, token: '' })
-  })
+  }))
 
   ipcMain.handle('cloud:is-authed', async () => {
-    return Boolean((await getConfig()).token)
+    const config = await getConfig()
+    const valid = await verifySignIn(config)
+    if (!valid && config.token) await saveConfig({ ...config, token: '' })
+    return valid
   })
 
   ipcMain.handle('cloud:profile', () =>
@@ -215,6 +209,18 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
   ipcMain.handle('cloud:list', (_e, dir: string) =>
     apiJson<{ entries: CloudEntry[] }>(`/api/files?path=${encodeURIComponent(dir)}`)
   )
+  ipcMain.handle('cloud:list-trash', () => apiJson<TrashListing>('/api/trash'))
+  ipcMain.handle('cloud:restore-trash', (_e, id: string, destination?: string) =>
+    apiJson<TrashRestoreResult>('/api/trash/restore', { method: 'POST', body: JSON.stringify({ id, destination }) })
+  )
+  ipcMain.handle('cloud:purge-trash', (_e, input: TrashPurgeInput) =>
+    apiJson<TrashPurgeResult>('/api/trash/purge', { method: 'POST', body: JSON.stringify(input) })
+  )
+  ipcMain.handle('cloud:backup-status', () => apiJson<BackupStatus>('/api/backups/status'))
+  ipcMain.handle('cloud:start-backup-job', (_e, input: BackupStartInput) =>
+    apiJson<BackupJob>('/api/backups/jobs', { method: 'POST', body: JSON.stringify(input) })
+  )
+  ipcMain.handle('cloud:backup-job', (_e, id: string) => apiJson<BackupJob>(`/api/backups/jobs/${encodeURIComponent(id)}`))
   ipcMain.handle('cloud:mkdir', (_e, dir: string) =>
     apiJson('/api/mkdir', { method: 'POST', body: JSON.stringify({ path: dir }) })
   )
@@ -229,9 +235,10 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
   )
 
   ipcMain.handle('cloud:file-url', async (_e, remotePath: string) => {
-    const config = await getConfig()
-    assertConfigured(config)
-    return remoteFileUrl(config, remotePath)
+    const { url } = await apiJson<{ url: string }>('/api/preview-ticket', {
+      method: 'POST', body: JSON.stringify({ path: remotePath }),
+    })
+    return url
   })
 
   ipcMain.handle('cloud:pick-and-upload', async (_e, remoteDir: string) => {
@@ -260,30 +267,19 @@ export function registerCloudHandlers(getWindow: () => BrowserWindow | null): vo
     async (_e, remotePath: string, name: string, targetDir: string) => {
       const config = await getConfig()
       assertConfigured(config)
-      const id = randomUUID()
-      const res = await fetch(remoteFileUrl(config, remotePath))
-      if (!res.ok || !res.body) {
-        throw new Error(`下载 ${name} 失败: HTTP ${res.status}`)
+      const id = transfers.start('download', name)
+      try {
+        const target = await downloadFile({
+          url: remoteFileUrl(config, remotePath), headers: { Authorization: `Bearer ${config.token}` },
+          name, targetDir, onProgress: (loaded, total) => transfers.progress(id, loaded, total),
+          signal: transfers.signal(id),
+        })
+        transfers.complete(id)
+        return target
+      } catch (error) {
+        transfers.fail(id, error)
+        throw error
       }
-      const total = Number(res.headers.get('content-length') ?? 0)
-      const target = uniqueTarget(targetDir, name)
-      const out = fs.createWriteStream(target)
-      const report = progressReporter()
-      const reader = res.body.getReader()
-      let loaded = 0
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        if (value) {
-          loaded += value.byteLength
-          out.write(value)
-          report.push({ id, kind: 'download', name, loaded, total })
-        }
-      }
-      await new Promise<void>((resolve) => out.end(resolve))
-      report.flush()
-      sendProgress({ id, kind: 'download', name, loaded, total: loaded })
-      return target
     }
   )
 }

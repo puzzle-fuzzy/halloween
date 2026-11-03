@@ -1,0 +1,38 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  check:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+      - run: bun install --frozen-lockfile
+      - name: Prepare verified restic for isolated backup tests
+        shell: bash
+        run: |
+          halloween_test_restic="$(bun scripts/fetch-test-restic.ts)"
+          echo "BACKUP_TEST_RESTIC_BINARY=$halloween_test_restic" >> "$GITHUB_ENV"
+      - run: bun run check
+      - run: bun run test:dev-proxy
+      - if: runner.os == 'macOS'
+        run: bun run --filter @halloween/desktop test:smoke
+      - if: runner.os == 'macOS'
+        run: bun run test:ui
+      - if: runner.os == 'macOS'
+        run: bun run test:media
+      - if: runner.os == 'macOS'
+        run: bun run test:recovery

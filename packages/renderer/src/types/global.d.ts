@@ -1,3 +1,6 @@
+import type { TrashListing, TrashPurgeInput, TrashPurgeResult, BackupStatus, BackupJobKind, BackupJob } from "@halloween/contracts"
+export type { TrashEntry, TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResult, BackupJobKind, BackupJob, BackupSnapshot, BackupStatus, BackupStartInput } from "@halloween/contracts"
+
 export {}
 
 export interface CloudEntry {
@@ -19,6 +22,8 @@ export interface TransferProgress {
   name: string
   loaded: number
   total: number
+  status: 'running' | 'completed' | 'failed' | 'cancelled'
+  error?: string
 }
 
 export interface OssAccountInfo {
@@ -95,8 +100,9 @@ declare global {
         objects: (
           accountId: string,
           bucket: string,
-          prefix: string
-        ) => Promise<{ entries: OssEntry[]; truncated: boolean }>
+          prefix: string,
+          marker?: string
+        ) => Promise<{ entries: OssEntry[]; truncated: boolean; nextMarker?: string }>
         previewUrl: (accountId: string, bucket: string, key: string) => Promise<{ url: string }>
         mkdir: (accountId: string, bucket: string, key: string) => Promise<unknown>
         rename: (accountId: string, bucket: string, from: string, to: string) => Promise<unknown>
@@ -150,10 +156,20 @@ declare global {
         login: () => Promise<{ ok: boolean }>
         logout: () => Promise<void>
         isAuthed: () => Promise<boolean>
+        openAdmin: (page?: 'profile' | 'tokens' | 'oss-accounts') => Promise<void>
+        transfers: () => Promise<TransferProgress[]>
+        cancelTransfer: (id: string) => Promise<void>
+        onAuthCode: (callback: (code: { userCode: string; expiresAt: number }) => void) => () => void
         profile: () => Promise<{
           profile: { name: string; email: string; avatar: string }
         }>
         list: (dir: string) => Promise<{ entries: CloudEntry[] }>
+        listTrash: () => Promise<TrashListing>
+        restoreTrash: (id: string, destination?: string) => Promise<{ ok: true; path: string; warning?: string }>
+        purgeTrash: (input: TrashPurgeInput) => Promise<TrashPurgeResult>
+        backupStatus: () => Promise<BackupStatus>
+        startBackupJob: (input: { kind: BackupJobKind; snapshotId?: string }) => Promise<BackupJob>
+        backupJob: (id: string) => Promise<BackupJob>
         mkdir: (dir: string) => Promise<unknown>
         rename: (from: string, to: string) => Promise<unknown>
         remove: (paths: string[]) => Promise<unknown>

@@ -7,3 +7,6 @@ release/
 .local-data/
 packages/server/public/
 packages/desktop/resources/
+packages/server/data/
+packages/server/state/
+.codegraph/

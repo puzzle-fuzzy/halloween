@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
+import type { TrashPurgeInput, BackupStartInput } from '@halloween/contracts'
 
 contextBridge.exposeInMainWorld('electron', {
   versions: process.versions,
@@ -18,11 +19,25 @@ contextBridge.exposeInMainWorld('electron', {
     login: () => ipcRenderer.invoke('cloud:login'),
     logout: () => ipcRenderer.invoke('cloud:logout'),
     isAuthed: () => ipcRenderer.invoke('cloud:is-authed'),
+    openAdmin: (page?: 'profile' | 'tokens' | 'oss-accounts') => ipcRenderer.invoke('cloud:open-admin', page),
+    transfers: () => ipcRenderer.invoke('cloud:transfers'),
+    cancelTransfer: (id: string) => ipcRenderer.invoke('cloud:cancel-transfer', id),
+    onAuthCode: (callback: (code: { userCode: string; expiresAt: number }) => void) => {
+      const listener = (_event: unknown, code: { userCode: string; expiresAt: number }) => callback(code)
+      ipcRenderer.on('cloud:auth-code', listener)
+      return () => ipcRenderer.removeListener('cloud:auth-code', listener)
+    },
     profile: () => ipcRenderer.invoke('cloud:profile'),
     list: (dir: string) => ipcRenderer.invoke('cloud:list', dir),
     mkdir: (dir: string) => ipcRenderer.invoke('cloud:mkdir', dir),
     rename: (from: string, to: string) => ipcRenderer.invoke('cloud:rename', from, to),
     remove: (paths: string[]) => ipcRenderer.invoke('cloud:delete', paths),
+    listTrash: () => ipcRenderer.invoke('cloud:list-trash'),
+    restoreTrash: (id: string, destination?: string) => ipcRenderer.invoke('cloud:restore-trash', id, destination),
+    purgeTrash: (request: TrashPurgeInput) => ipcRenderer.invoke('cloud:purge-trash', request),
+    backupStatus: () => ipcRenderer.invoke('cloud:backup-status'),
+    startBackupJob: (request: BackupStartInput) => ipcRenderer.invoke('cloud:start-backup-job', request),
+    backupJob: (id: string) => ipcRenderer.invoke('cloud:backup-job', id),
     search: (q: string) => ipcRenderer.invoke('cloud:search', q),
     fileUrl: (remotePath: string) => ipcRenderer.invoke('cloud:file-url', remotePath),
     pickAndUpload: (remoteDir: string) => ipcRenderer.invoke('cloud:pick-and-upload', remoteDir),
@@ -38,6 +53,8 @@ contextBridge.exposeInMainWorld('electron', {
         name: string
         loaded: number
         total: number
+        status: 'running' | 'completed' | 'failed' | 'cancelled'
+        error?: string
       }) => void
     ) => {
       const listener = (_event: unknown, progress: unknown) => callback(progress as never)
@@ -49,8 +66,8 @@ contextBridge.exposeInMainWorld('electron', {
   oss: {
     accounts: () => ipcRenderer.invoke('oss:accounts'),
     buckets: (accountId: string) => ipcRenderer.invoke('oss:buckets', accountId),
-    objects: (accountId: string, bucket: string, prefix: string) =>
-      ipcRenderer.invoke('oss:objects', accountId, bucket, prefix),
+    objects: (accountId: string, bucket: string, prefix: string, marker?: string) =>
+      ipcRenderer.invoke('oss:objects', accountId, bucket, prefix, marker),
     previewUrl: (accountId: string, bucket: string, key: string) =>
       ipcRenderer.invoke('oss:preview-url', accountId, bucket, key),
     mkdir: (accountId: string, bucket: string, key: string) =>

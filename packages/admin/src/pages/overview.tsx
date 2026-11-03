@@ -12,6 +12,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import { adminApi, checkSession } from "@/lib/api"
 
 interface Stats {
@@ -44,17 +45,27 @@ function StatCard({
 export default function OverviewPage() {
   const [authed, setAuthed] = React.useState<boolean | null>(null)
   const [stats, setStats] = React.useState<Stats | null>(null)
+  const [error, setError] = React.useState('')
+  const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
-    void checkSession()
+    const controller = new AbortController()
+    setError('')
+    void checkSession(controller.signal)
       .then(async (ok) => {
+        if (controller.signal.aborted) return
         setAuthed(ok)
-        if (ok) setStats(await adminApi<Stats>('/stats'))
+        if (ok) {
+          const result = await adminApi<Stats>('/stats', { signal: controller.signal })
+          if (!controller.signal.aborted) setStats(result)
+        }
       })
-      .catch(() => setAuthed(false))
-  }, [])
+      .catch((e: unknown) => { if (!controller.signal.aborted) setError(String(e)) })
+    return () => controller.abort()
+  }, [attempt])
 
   if (authed === false) return <Navigate to="/login" replace />
+  if (error) return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6"><p role="alert" className="text-destructive text-sm">{error}</p><Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>Retry</Button></div>
   if (authed === null || !stats) {
     return (
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
@@ -71,9 +82,9 @@ export default function OverviewPage() {
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          title="Storage used"
+          title="Data volume used"
           value={prettyBytes(stats.storage.used)}
-          hint={`${prettyBytes(stats.storage.total)} total`}
+          hint={`${prettyBytes(stats.storage.total)} total, including other files on this volume`}
         />
         <StatCard
           title="Storage available"
@@ -88,10 +99,9 @@ export default function OverviewPage() {
       </div>
       <Card className="@container/card">
         <CardHeader>
-          <CardTitle>halloween.yxswy.com</CardTitle>
+          <CardTitle>Your storage</CardTitle>
           <CardDescription>
-            Cloud drive serves at <code>/cloud</code>; every future service gets its own prefix on
-            this domain.
+            Manage your authorized devices, OSS accounts and personal profile from the sidebar.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-muted-foreground flex items-center gap-2 text-sm">

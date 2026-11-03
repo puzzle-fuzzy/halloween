@@ -6,11 +6,13 @@ import { WindowControls } from "@/components/window-controls"
 import { cn } from "@/lib/utils"
 
 const titles: Record<string, string> = {
-  "/": "Dashboard",
+  "/": "Overview",
   "/cloud": "Cloud",
   "/oss": "OSS",
   "/rss": "RSS",
   "/proxy": "Proxy",
+  "/trash": "Trash",
+  "/backups": "Backups",
 }
 
 export function SiteHeader() {

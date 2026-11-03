@@ -1,11 +1,10 @@
 import * as React from "react"
 import {
   IconBrandGithub,
-  IconCreditCard,
   IconDotsVertical,
   IconLogout,
   IconMoon,
-  IconNotification,
+  IconDevices,
   IconSun,
   IconUserCircle,
 } from "@tabler/icons-react"
@@ -52,14 +51,16 @@ export function NavUser() {
   const [profile, setProfile] = React.useState<Profile | null>(null)
 
   React.useEffect(() => {
+    let active = true
     if (!cloudAuth.authed) {
       setProfile(null)
       return
     }
     window.electron?.cloud
       ?.profile()
-      .then((res) => setProfile(res.profile))
-      .catch(() => setProfile(null))
+      .then((res) => { if (active) setProfile(res.profile) })
+      .catch(() => { if (active) setProfile(null) })
+    return () => { active = false }
   }, [cloudAuth.authed])
 
   const name = profile?.name || "Halloween"
@@ -110,17 +111,13 @@ export function NavUser() {
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("profile").catch((e) => toast.error(String(e)))}>
                 <IconUserCircle />
-                Account
+                Manage profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconCreditCard />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <IconNotification />
-                Notifications
+              <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("tokens").catch((e) => toast.error(String(e)))}>
+                <IconDevices />
+                Authorized devices
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
@@ -141,8 +138,9 @@ export function NavUser() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                void cloudAuth.logout().then(() => toast.success("Signed out"))
+                void cloudAuth.logout().then(() => toast.success("Signed out")).catch((e) => toast.error(String(e)))
               }}
+              disabled={!cloudAuth.authed}
             >
               <IconLogout />
               Log out

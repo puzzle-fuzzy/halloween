@@ -1,5 +1,6 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
 import { registerProxyHandlers, shutdownProxy } from './proxy'
@@ -36,6 +37,10 @@ async function createWindow(): Promise<void> {
     ...(isMac ? { titleBarStyle: 'hiddenInset' as const } : { frame: false }),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
+      sandbox: true,
+      webSecurity: true,
     },
   })
 
@@ -44,12 +49,6 @@ async function createWindow(): Promise<void> {
     if (mainWindow === win) mainWindow = null
   })
 
-  ipcMain.on('window:minimize', () => win.minimize())
-  ipcMain.on('window:toggle-maximize', () =>
-    win.isMaximized() ? win.unmaximize() : win.maximize()
-  )
-  ipcMain.on('window:close', () => win.close())
-  ipcMain.handle('window:is-maximized', () => win.isMaximized())
   const sendMaximizeState = () =>
     win.webContents.send('window:maximize-changed', win.isMaximized())
   win.on('maximize', sendMaximizeState)
@@ -62,7 +61,7 @@ async function createWindow(): Promise<void> {
   })
   win.webContents.on('did-finish-load', () => console.log('[main] page loaded'))
 
-win.webContents.on('render-process-gone', (_event, details) =>
+  win.webContents.on('render-process-gone', (_event, details) =>
     console.error(`[main] renderer gone: ${details.reason}`)
   )
 
@@ -70,6 +69,20 @@ win.webContents.on('render-process-gone', (_event, details) =>
     if (url.startsWith('https:')) void shell.openExternal(url)
     return { action: 'deny' }
   })
+
+  const entryUrl = devServerUrl || pathToFileURL(path.join(__dirname, '../renderer/index.html')).toString()
+  const isAppUrl = (url: string): boolean => {
+    const candidate = new URL(url)
+    const entry = new URL(entryUrl)
+    return devServerUrl ? candidate.origin === entry.origin : candidate.protocol === 'file:' && candidate.pathname === entry.pathname
+  }
+  win.webContents.on('will-navigate', (event, url) => {
+    if (!isAppUrl(url)) event.preventDefault()
+  })
+  win.webContents.on('will-redirect', (event, url) => {
+    if (!isAppUrl(url)) event.preventDefault()
+  })
+  win.webContents.on('will-attach-webview', (event) => event.preventDefault())
 
   win.webContents.on(
     'did-fail-load',
@@ -85,6 +98,14 @@ win.webContents.on('render-process-gone', (_event, details) =>
 }
 
 void app.whenReady().then(() => {
+  // These belong to the application lifetime, including when macOS recreates its window.
+  ipcMain.on('window:minimize', () => mainWindow?.minimize())
+  ipcMain.on('window:toggle-maximize', () => {
+    if (mainWindow?.isMaximized()) mainWindow.unmaximize()
+    else mainWindow?.maximize()
+  })
+  ipcMain.on('window:close', () => mainWindow?.close())
+  ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
   registerCloudHandlers(() => mainWindow)
   registerOssHandlers(() => mainWindow)
   registerRssHandlers()

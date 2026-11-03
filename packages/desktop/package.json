@@ -7,7 +7,11 @@
   "scripts": {
     "dev": "bun scripts/dev.mjs",
     "build": "bun scripts/build.mjs",
-    "dist": "electron-builder --win",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac",
+    "test": "bun test tests",
+    "test:smoke": "node scripts/smoke.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
@@ -20,6 +24,7 @@
   },
   "dependencies": {
     "lodash": "^4.18.1",
-    "yaml": "^2.9.1"
+    "yaml": "^2.9.1",
+    "@halloween/contracts": "workspace:*"
   }
 }

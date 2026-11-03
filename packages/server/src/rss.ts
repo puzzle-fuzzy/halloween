@@ -44,34 +44,38 @@ const MAX_BODY_CHARS = 2 * 1024 * 1024
 const MAX_ITEMS_PER_FEED = 100
 const MAX_ITEMS_TOTAL = 300
 
-let dataRoot = ''
+let stateRoot = ''
+let legacyRoot = ''
 let feeds: RssFeed[] = []
 let cache: RssCache = { refreshedAt: 0, byFeed: {} }
 let inflight: Promise<void> | null = null
 
 const xml = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@' })
 
-function feedsFile(): string {
-  return path.join(dataRoot, '.rss-feeds.json')
+function feedsFile(root: string = stateRoot): string {
+  return path.join(root, '.rss-feeds.json')
 }
 
-function cacheFile(): string {
-  return path.join(dataRoot, '.rss-cache.json')
+function cacheFile(root: string = stateRoot): string {
+  return path.join(root, '.rss-cache.json')
+}
+
+async function readJson(file: string): Promise<unknown> {
+  try {
+    return JSON.parse(await fs.readFile(file, 'utf-8'))
+  } catch {
+    return undefined
+  }
 }
 
 async function loadState(): Promise<void> {
-  try {
-    const raw = JSON.parse(await fs.readFile(feedsFile(), 'utf-8')) as { feeds?: RssFeed[] }
-    feeds = (raw.feeds ?? []).map((f) => ({ ...f, enabled: f.enabled !== false }))
-  } catch {
-    feeds = []
-  }
-  try {
-    const raw = JSON.parse(await fs.readFile(cacheFile(), 'utf-8')) as Partial<RssCache>
-    cache = { refreshedAt: raw.refreshedAt ?? 0, byFeed: raw.byFeed ?? {} }
-  } catch {
-    cache = { refreshedAt: 0, byFeed: {} }
-  }
+  // prefer stateRoot, fall back to the pre-split location in dataRoot once
+  let raw = (await readJson(feedsFile())) as { feeds?: RssFeed[] } | undefined
+  if (!raw && legacyRoot) raw = (await readJson(feedsFile(legacyRoot))) as { feeds?: RssFeed[] } | undefined
+  feeds = (raw?.feeds ?? []).map((f) => ({ ...f, enabled: f.enabled !== false }))
+  let cached = (await readJson(cacheFile())) as Partial<RssCache> | undefined
+  if (!cached && legacyRoot) cached = (await readJson(cacheFile(legacyRoot))) as Partial<RssCache> | undefined
+  cache = { refreshedAt: cached?.refreshedAt ?? 0, byFeed: cached?.byFeed ?? {} }
 }
 
 async function saveFeeds(): Promise<void> {
@@ -288,8 +292,11 @@ function mergedItems(): { refreshedAt: number; items: RssItem[] } {
 
 // ------------------------------------------------------------------ export
 
-export async function initRss(options: { dataRoot: string }): Promise<void> {
-  dataRoot = options.dataRoot
+export async function initRss(options: { dataRoot: string; stateRoot?: string }): Promise<void> {
+  // rss feeds/cache are server-private state — they belong in stateRoot, not
+  // the user-visible cloud data root; legacyRoot enables a one-time migration
+  stateRoot = options.stateRoot ?? options.dataRoot
+  legacyRoot = options.stateRoot ? options.dataRoot : ''
   await loadState()
   console.log(`[rss] ${feeds.length} feed(s), refreshing every ${REFRESH_INTERVAL_MS / 60000} min`)
   void refreshNow().catch((err) => console.error('[rss] initial refresh failed:', err))

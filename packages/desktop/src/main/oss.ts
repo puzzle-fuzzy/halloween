@@ -1,11 +1,11 @@
 import { BrowserWindow, dialog, ipcMain } from 'electron'
-import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
-import { getConfig, progressReporter, uniqueTarget } from './cloud'
-import type { TransferProgress } from './cloud'
+import { getConfig } from './cloud'
+import { downloadFile } from './download'
+import { transfers } from './transfers'
 
 export interface OssAccountInfo {
   id: string
@@ -52,9 +52,7 @@ async function ossApiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
 function countedStream(
   filePath: string,
   id: string,
-  name: string,
   total: number,
-  report: { push: (p: TransferProgress) => void }
 ): ReadableStream<Uint8Array> {
   const nodeStream = fs.createReadStream(filePath)
   let loaded = 0
@@ -63,7 +61,7 @@ function countedStream(
     new TransformStream<Uint8Array, Uint8Array>({
       transform(chunk, controller) {
         loaded += chunk.byteLength
-        report.push({ id, kind: 'upload', name, loaded, total })
+        transfers.progress(id, loaded, total)
         controller.enqueue(chunk)
       },
     })
@@ -80,28 +78,30 @@ async function uploadFiles(
   const uploaded: { name: string; size: number }[] = []
   for (const local of localPaths) {
     const name = path.basename(local)
-    const key = prefix + name
-    const { size } = await fsp.stat(local)
-    const { url } = await ossApiJson<{ url: string }>(
-      `/oss/api/accounts/${accountId}/sign`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ bucket, key, method: 'PUT' }),
-      }
-    )
-    const id = randomUUID()
-    const report = progressReporter()
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/octet-stream' },
-      body: countedStream(local, id, name, size, report),
-      duplex: 'half',
-    })
-    report.flush()
-    if (!res.ok) {
-      throw new Error(`Upload failed for ${name}: HTTP ${res.status}`.slice(0, 200))
+    const id = transfers.start('upload', name)
+    const signal = transfers.signal(id)
+    try {
+      const key = prefix + name
+      const { size } = await fsp.stat(local)
+      transfers.progress(id, 0, size)
+      const { url, headers } = await ossApiJson<{ url: string; headers?: Record<string, string> }>(
+        `/oss/api/accounts/${accountId}/sign`,
+        { method: 'POST', body: JSON.stringify({ bucket, key, method: 'PUT' }), signal },
+      )
+      const res = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/octet-stream', ...headers },
+        body: countedStream(local, id, size),
+        duplex: 'half',
+        signal,
+      })
+      if (!res.ok) throw new Error(`Upload failed for ${name}: HTTP ${res.status}`.slice(0, 200))
+      uploaded.push({ name, size })
+      transfers.complete(id)
+    } catch (error) {
+      transfers.fail(id, error)
+      throw error
     }
-    uploaded.push({ name, size })
   }
   return uploaded
 }
@@ -113,9 +113,9 @@ export function registerOssHandlers(getWindow: () => BrowserWindow | null): void
     ossApiJson<{ buckets: OssBucketInfo[] }>(`/oss/api/accounts/${accountId}/buckets`)
   )
 
-  ipcMain.handle('oss:objects', (_e, accountId: string, bucket: string, prefix: string) =>
-    ossApiJson<{ entries: OssEntry[]; truncated: boolean }>(
-      `/oss/api/accounts/${accountId}/objects?bucket=${encodeURIComponent(bucket)}&prefix=${encodeURIComponent(prefix)}`
+  ipcMain.handle('oss:objects', (_e, accountId: string, bucket: string, prefix: string, marker?: string) =>
+    ossApiJson<{ entries: OssEntry[]; truncated: boolean; nextMarker?: string }>(
+      `/oss/api/accounts/${accountId}/objects?bucket=${encodeURIComponent(bucket)}&prefix=${encodeURIComponent(prefix)}${marker ? `&marker=${encodeURIComponent(marker)}` : ''}`
     )
   )
 
@@ -169,31 +169,21 @@ export function registerOssHandlers(getWindow: () => BrowserWindow | null): void
   ipcMain.handle(
     'oss:download-to',
     async (_e, accountId: string, bucket: string, key: string, name: string, targetDir: string) => {
-      const { url } = await ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
-        method: 'POST',
-        body: JSON.stringify({ bucket, key, method: 'GET' }),
-      })
-      const res = await fetch(url)
-      if (!res.ok || !res.body) throw new Error(`Download failed for ${name}: HTTP ${res.status}`)
-      const id = randomUUID()
-      const total = Number(res.headers.get('content-length') ?? 0)
-      const target = uniqueTarget(targetDir, name)
-      const out = fs.createWriteStream(target)
-      const report = progressReporter()
-      const reader = res.body.getReader()
-      let loaded = 0
-      for (;;) {
-        const { done, value } = await reader.read()
-        if (done) break
-        if (value) {
-          loaded += value.byteLength
-          out.write(value)
-          report.push({ id, kind: 'download', name, loaded, total })
-        }
+      const id = transfers.start('download', name)
+      const signal = transfers.signal(id)
+      try {
+        const { url } = await ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
+          method: 'POST',
+          body: JSON.stringify({ bucket, key, method: 'GET' }),
+          signal,
+        })
+        const target = await downloadFile({ url, name, targetDir, signal, onProgress: (loaded, total) => transfers.progress(id, loaded, total) })
+        transfers.complete(id)
+        return target
+      } catch (error) {
+        transfers.fail(id, error)
+        throw error
       }
-      await new Promise<void>((resolve) => out.end(resolve))
-      report.flush()
-      return target
     }
   )
 }
