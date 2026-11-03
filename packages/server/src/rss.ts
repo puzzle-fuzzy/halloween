@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { lookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { Hono } from 'hono'
@@ -43,6 +45,7 @@ const FETCH_TIMEOUT_MS = 15 * 1000
 const MAX_BODY_CHARS = 2 * 1024 * 1024
 const MAX_ITEMS_PER_FEED = 100
 const MAX_ITEMS_TOTAL = 300
+const MAX_REDIRECTS = 3
 
 let stateRoot = ''
 let legacyRoot = ''
@@ -210,14 +213,86 @@ function parseFeed(body: string): { feedTitle: string; items: RawItem[] } {
 
 // ----------------------------------------------------------------- refresh
 
+/** [start, end] as unsigned 32-bit values */
+const BLOCKED_V4: ReadonlyArray<readonly [number, number]> = [
+  [0x00000000, 0x00000000], // 0.0.0.0/8 "this host"
+  [0x0a000000, 0x0affffff], // 10/8 private
+  [0x64400000, 0x647fffff], // 100.64/10 CGNAT
+  [0x7f000000, 0x7fffffff], // 127/8 loopback
+  [0xa9fe0000, 0xa9feffff], // 169.254/16 link-local (incl. cloud metadata)
+  [0xac100000, 0xac1fffff], // 172.16/12 private
+  [0xc0a80000, 0xc0a8ffff], // 192.168/16 private
+  [0xc6120000, 0xc613ffff], // 198.18/15 benchmark
+  [0xe0000000, 0xffffffff], // 224/4 multicast + 240/4 reserved
+]
+
+/** loopback / private / link-local (incl. cloud metadata) / CGNAT / multicast-reserved ranges */
+export function isBlockedAddress(ip: string): boolean {
+  if (isIP(ip) === 4) {
+    const [a, b, c, d] = ip.split('.').map(Number) as [number, number, number, number]
+    const value = ((a << 24) | (b << 16) | (c << 8) | d) >>> 0
+    return BLOCKED_V4.some(([lo, hi]) => value >= lo && value <= hi)
+  }
+  if (isIP(ip) === 6) {
+    const lower = ip.toLowerCase()
+    if (lower === '::' || lower === '::1') return true
+    const mapped = lower.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/)
+    if (mapped) return isBlockedAddress(mapped[1]!)
+    const first = Number.parseInt(lower.split(':')[0] || '0', 16)
+    if ((first & 0xfe00) === 0xfc00) return true // fc00::/7 unique-local
+    if ((first & 0xffc0) === 0xfe80) return true // fe80::/10 link-local
+    if ((first & 0xff00) === 0xff00) return true // ff00::/8 multicast
+    return false
+  }
+  return true // not an IP literal at all — refuse
+}
+
+/**
+ * SSRF guard for feed fetching: resolve the host and refuse anything that
+ * lands on a non-public address. Redirects are followed manually so a 30x
+ * cannot pivot the request into the internal network.
+ *
+ * Residual risk: the resolver runs again inside fetch() — a rebinding DNS
+ * server can flip answers inside that window. Acceptable for a personal
+ * server; pinning the connection to the validated IP would break TLS SNI.
+ */
+async function assertPublicFeedUrl(target: URL): Promise<void> {
+  if (target.protocol !== 'https:' && target.protocol !== 'http:') {
+    throw new Error('only http(s) feed URLs are supported')
+  }
+  const host = target.hostname.replace(/^\[|\]$/g, '')
+  if (isIP(host)) {
+    if (isBlockedAddress(host)) throw new Error('feed host is a blocked address')
+    return
+  }
+  const records = await lookup(host, { all: true })
+  if (records.length === 0) throw new Error('feed host did not resolve')
+  for (const record of records) {
+    if (isBlockedAddress(record.address)) throw new Error('feed host resolves to a blocked address')
+  }
+}
+
+async function fetchFeedResponse(feedUrl: string): Promise<Response> {
+  let target = feedUrl
+  for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
+    await assertPublicFeedUrl(new URL(target))
+    const res = await fetch(target, {
+      headers: { 'User-Agent': 'halloween-rss/1.0' },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      redirect: 'manual',
+    })
+    if (res.status < 300 || res.status >= 400) return res
+    const location = res.headers.get('location')
+    if (!location) return res
+    target = new URL(location, target).toString()
+  }
+  throw new Error(`too many redirects (> ${MAX_REDIRECTS})`)
+}
+
 async function fetchFeed(feed: RssFeed): Promise<FeedSnapshot> {
   const fetchedAt = Date.now()
   try {
-    const res = await fetch(feed.url, {
-      headers: { 'User-Agent': 'halloween-rss/1.0' },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
-      redirect: 'follow',
-    })
+    const res = await fetchFeedResponse(feed.url)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const { feedTitle, items } = parseFeed((await res.text()).slice(0, MAX_BODY_CHARS))
     const seen = new Set<string>()

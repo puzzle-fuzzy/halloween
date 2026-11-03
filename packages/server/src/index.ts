@@ -48,16 +48,38 @@ function parseProfile(raw: unknown): UserProfile {
   if (!profile || ['name', 'email', 'avatar'].some((key) => typeof profile[key as keyof UserProfile] !== 'string')) throw new Error('invalid profile')
   return { name: profile.name, email: profile.email, avatar: profile.avatar }
 }
-class RateLimiter {
+const RATE_LIMITER_MAX_ENTRIES = 10_000
+
+export class RateLimiter {
   private entries = new Map<string, { count: number; until: number }>()
   constructor(private now: () => number) {}
   allow(key: string, limit: number, window: number): boolean {
     const now = this.now()
     for (const [k, value] of this.entries) if (value.until <= now) this.entries.delete(k)
     let entry = this.entries.get(key)
-    if (!entry) { entry = { count: 0, until: now + window }; this.entries.set(key, entry) }
+    if (!entry) {
+      // bounded: forged identity headers must not be able to grow the map forever
+      while (this.entries.size >= RATE_LIMITER_MAX_ENTRIES) {
+        const oldest = this.entries.keys().next().value
+        if (oldest === undefined) break
+        this.entries.delete(oldest)
+      }
+      entry = { count: 0, until: now + window }
+      this.entries.set(key, entry)
+    }
     return ++entry.count <= limit
   }
+}
+
+/** accept a proxy-reported client IP only when it is a real address — anything else is attacker-controlled */
+export function trustedClientIp(value: string | undefined): string | undefined {
+  if (!value) return undefined
+  const raw = value.trim()
+  const stripped = raw.startsWith('::ffff:') && raw.includes('.') ? raw.slice(7) : raw
+  if (/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.test(stripped)) {
+    return stripped.split('.').every((part) => Number(part) <= 255) ? stripped : undefined
+  }
+  return /^[0-9a-fA-F:]{2,45}$/.test(stripped) && stripped.includes(':') ? stripped : undefined
 }
 function rawFilePath(uri: string): string | undefined {
   const pathname = uri.split('?')[0]!
@@ -118,7 +140,7 @@ export async function createApplication(options: ApplicationOptions): Promise<Ho
     if (options.trustProxy && c.req.header('X-Forwarded-Proto') === 'https') url.protocol = 'https:'
     return url.origin
   }
-  function ip(c: Context): string { return (options.trustProxy ? c.req.header('X-Real-IP') : undefined) ?? c.env?.clientIp ?? 'local' }
+  function ip(c: Context): string { return trustedClientIp(options.trustProxy ? c.req.header('X-Real-IP') : undefined) ?? c.env?.clientIp ?? 'local' }
   function rate(c: Context, category: string, limit: number, window = 60_000): boolean {
     if (limiter.allow(`${category}:${ip(c)}`, limit, window)) return true
     c.header('Retry-After', String(Math.ceil(window / 1000)))

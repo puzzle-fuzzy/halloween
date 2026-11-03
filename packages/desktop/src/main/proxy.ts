@@ -412,6 +412,17 @@ async function startCore(): Promise<void> {
       core.stderr?.on('data', (d) => {
         coreLog = (coreLog + String(d)).slice(-2000)
       })
+      core.on('error', (err) => {
+        // spawn failures (EACCES, file lock) surface as 'error', never 'exit';
+        // without a listener EventEmitter rethrows and crashes the main process
+        coreLog = (coreLog + `\n${err.message}`).slice(-2000)
+        core = null
+        if (!stopping && state.running) {
+          state.running = false
+          state.lastError = `core failed\n${coreLog}`
+          void setSystemProxy(false).catch(() => {})
+        }
+      })
       core.on('exit', () => {
         core = null
         if (!stopping && state.running) {
