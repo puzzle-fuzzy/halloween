@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@halloween/ui/table"
 import { adminApi, checkSession } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 interface Device {
   id: string
@@ -20,6 +21,7 @@ interface Device {
 }
 
 export default function TokensPage() {
+  const { t } = useI18n()
   const [devices, setDevices] = React.useState<Device[] | null>(null)
   const [error, setError] = React.useState('')
   const [busy, setBusy] = React.useState(false)
@@ -44,7 +46,7 @@ export default function TokensPage() {
 
   const revoke = async (device: Device) => {
     if (busy) return
-    if (!window.confirm(`Revoke ${device.name}? The device will need to sign in again.`)) return
+    if (!window.confirm(t.tokens.revokeConfirm(device.name))) return
     setBusy(true)
     try {
       await adminApi('/devices/revoke', {
@@ -63,28 +65,28 @@ export default function TokensPage() {
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex items-center">
         <p className="text-muted-foreground text-sm">
-          Devices authorized through browser sign-in. Revoking signs the device out.
+          {t.tokens.description}
         </p>
         <Button variant="outline" size="sm" className="ml-auto" onClick={() => void load()}>
-          Refresh
+          {t.common.refresh}
         </Button>
       </div>
       <div className="flex-1 overflow-hidden rounded-lg border">
         {error ? <p role="alert" className="text-destructive p-4 text-sm">{error}</p> : devices === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Loading…
+            {t.common.loading}
           </div>
         ) : devices.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            No authorized devices
+            {t.tokens.noDevices}
           </div>
         ) : (
           <div className="h-full overflow-auto [scrollbar-gutter:stable]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-3">Name</TableHead>
-                  <TableHead className="w-44">Authorized</TableHead>
+                  <TableHead className="pl-3">{t.common.name}</TableHead>
+                  <TableHead className="w-44">{t.tokens.authorized}</TableHead>
                   <TableHead className="w-20" />
                 </TableRow>
               </TableHeader>
@@ -100,7 +102,7 @@ export default function TokensPage() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive"
-                        aria-label="Revoke"
+                        aria-label={t.tokens.revokeAria}
                         disabled={busy}
                         onClick={() => void revoke(device)}
                       >

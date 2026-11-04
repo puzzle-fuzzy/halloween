@@ -4,6 +4,7 @@ import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@halloween/ui/sidebar"
 import { TooltipProvider } from "@halloween/ui/tooltip"
+import { LanguageProvider, LangSwitch } from "@/i18n"
 import DevicePage from "@/pages/device"
 import LoginPage from "@/pages/login"
 import OssAccountsPage from "@/pages/oss-accounts"
@@ -37,6 +38,8 @@ function Shell() {
 
 export default function App() {
   return (
+    <LanguageProvider>
+    <LangSwitch />
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/device/:code" element={<DevicePage />} />
@@ -49,5 +52,6 @@ export default function App() {
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </LanguageProvider>
   )
 }

@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@halloween/ui/table"
 import { adminApi } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 interface Feed {
   id: string
@@ -58,6 +59,7 @@ function feedName(feed: Feed): string {
 }
 
 export default function RssPage() {
+  const { t } = useI18n()
   const [data, setData] = React.useState<FeedsResponse | null>(null)
   const [dialog, setDialog] = React.useState<DialogState | null>(null)
   const [refreshing, setRefreshing] = React.useState(false)
@@ -113,7 +115,7 @@ export default function RssPage() {
   }
 
   const remove = async (feed: Feed) => {
-    if (!window.confirm(`Delete feed "${feedName(feed)}"?`)) return
+    if (!window.confirm(t.rss.deleteConfirm(feedName(feed)))) return
     await adminApi('/rss/feeds/delete', {
       method: 'POST',
       body: JSON.stringify({ id: feed.id }),
@@ -125,40 +127,39 @@ export default function RssPage() {
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-muted-foreground flex-1 text-sm">
-          RSS sources — the server refreshes them every 30 minutes and caches the
-          items for the desktop app.
+          {t.rss.description}
         </p>
         <span className="text-muted-foreground text-xs">
-          Updated {data?.refreshedAt ? format(new Date(data.refreshedAt), 'MMM d, HH:mm') : '—'}
-          {data ? ` · ${data.total} items` : ''}
+          {data?.refreshedAt ? t.rss.updated(format(new Date(data.refreshedAt), 'MMM d, HH:mm')) : '—'}
+          {data ? ` · ${t.rss.items(data.total)}` : ''}
         </span>
         <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={refreshing}>
           <IconRefresh className={refreshing ? 'animate-spin' : ''} />
-          Refresh Now
+          {t.rss.refreshNow}
         </Button>
         <Button size="sm" onClick={() => setDialog({ ...emptyDialog })}>
           <IconPlus />
-          Add Feed
+          {t.rss.addFeed}
         </Button>
       </div>
       {error && <p className="text-destructive text-sm">{error}</p>}
       <div className="flex-1 overflow-hidden rounded-lg border">
         {data === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Loading…
+            {t.common.loading}
           </div>
         ) : data.feeds.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            No RSS feeds configured
+            {t.rss.empty}
           </div>
         ) : (
           <div className="h-full overflow-auto [scrollbar-gutter:stable]">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-3">Feed</TableHead>
-                  <TableHead className="w-28">Status</TableHead>
-                  <TableHead className="w-44">Fetched</TableHead>
+                  <TableHead className="pl-3">{t.rss.feed}</TableHead>
+                  <TableHead className="w-28">{t.rss.status}</TableHead>
+                  <TableHead className="w-44">{t.rss.fetched}</TableHead>
                   <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
@@ -171,14 +172,14 @@ export default function RssPage() {
                     </TableCell>
                     <TableCell>
                       {!feed.enabled ? (
-                        <Badge variant="outline">Disabled</Badge>
+                        <Badge variant="outline">{t.rss.disabled}</Badge>
                       ) : feed.fetchedAt === 0 ? (
-                        <Badge variant="outline">Pending</Badge>
+                        <Badge variant="outline">{t.rss.pending}</Badge>
                       ) : feed.ok ? (
-                        <Badge variant="secondary">{feed.count} items</Badge>
+                        <Badge variant="secondary">{t.rss.itemCount(feed.count)}</Badge>
                       ) : (
                         <Badge variant="destructive" title={feed.error}>
-                          Error
+                          {t.rss.error}
                         </Badge>
                       )}
                     </TableCell>
@@ -191,7 +192,7 @@ export default function RssPage() {
                           variant="ghost"
                           size="icon"
                           className="size-7"
-                          aria-label="Edit"
+                          aria-label={t.common.edit}
                           onClick={() =>
                             setDialog({
                               mode: 'edit',
@@ -208,7 +209,7 @@ export default function RssPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive size-7"
-                          aria-label="Delete"
+                          aria-label={t.common.delete}
                           onClick={() => void remove(feed)}
                         >
                           <IconTrash className="size-4" />
@@ -226,20 +227,20 @@ export default function RssPage() {
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dialog?.mode === 'create' ? 'Add RSS Feed' : 'Edit RSS Feed'}</DialogTitle>
+            <DialogTitle>{dialog?.mode === 'create' ? t.rss.addTitle : t.rss.editTitle}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <Label htmlFor="rss-title">Title</Label>
+              <Label htmlFor="rss-title">{t.rss.title}</Label>
               <Input
                 id="rss-title"
-                placeholder="leave blank to use the feed's own title"
+                placeholder={t.rss.titlePlaceholder}
                 value={dialog?.title ?? ''}
                 onChange={(e) => dialog && setDialog({ ...dialog, title: e.target.value })}
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Label htmlFor="rss-url">Feed URL</Label>
+              <Label htmlFor="rss-url">{t.rss.url}</Label>
               <Input
                 id="rss-url"
                 type="url"
@@ -254,19 +255,19 @@ export default function RssPage() {
                 checked={dialog?.enabled ?? true}
                 onCheckedChange={(v) => dialog && setDialog({ ...dialog, enabled: v === true })}
               />
-              <Label htmlFor="rss-enabled">Enabled</Label>
+              <Label htmlFor="rss-enabled">{t.rss.enabled}</Label>
             </div>
             {error && <p className="text-destructive text-sm">{error}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(null)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               onClick={() => void save()}
               disabled={!dialog?.url.trim() || (!dialog.url.startsWith('http://') && !dialog.url.startsWith('https://'))}
             >
-              {dialog?.mode === 'create' ? 'Add' : 'Save'}
+              {dialog?.mode === 'create' ? t.common.add : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

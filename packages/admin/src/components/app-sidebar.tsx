@@ -13,17 +13,20 @@ import {
 } from "@halloween/ui/sidebar"
 import { IconBucket, IconDevices, IconGauge, IconLogout, IconRss, IconShieldHalf, IconUserCircle } from "@tabler/icons-react"
 import { adminApi } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
-const nav = [
-  { title: "Overview", to: "/", icon: IconGauge },
-  { title: "Devices", to: "/tokens", icon: IconDevices },
-  { title: "OSS Accounts", to: "/oss-accounts", icon: IconBucket },
-  { title: "RSS Feeds", to: "/rss", icon: IconRss },
-  { title: "Profile", to: "/profile", icon: IconUserCircle },
-]
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
+  const { t } = useI18n()
+  const nav = [
+    { title: t.nav.overview, to: "/", icon: IconGauge },
+    { title: t.nav.devices, to: "/tokens", icon: IconDevices },
+    { title: t.nav.ossAccounts, to: "/oss-accounts", icon: IconBucket },
+    { title: t.nav.rss, to: "/rss", icon: IconRss },
+    { title: t.nav.profile, to: "/profile", icon: IconUserCircle },
+  ]
 
   const logout = async () => {
     try {
@@ -66,9 +69,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Log out" onClick={() => void logout()}>
+            <SidebarMenuButton tooltip={t.nav.logOut} onClick={() => void logout()}>
               <IconLogout />
-              <span>Log out</span>
+              <span>{t.nav.logOut}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

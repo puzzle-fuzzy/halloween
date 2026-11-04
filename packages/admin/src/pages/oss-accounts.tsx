@@ -20,6 +20,7 @@ import {
   TableRow,
 } from "@halloween/ui/table"
 import { adminApi } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 interface Account {
   id: string
@@ -45,6 +46,7 @@ const emptyDialog: DialogState = {
 }
 
 export default function OssAccountsPage() {
+  const { t } = useI18n()
   const [accounts, setAccounts] = React.useState<Account[] | null>(null)
   const [dialog, setDialog] = React.useState<DialogState | null>(null)
   const [error, setError] = React.useState("")
@@ -93,7 +95,7 @@ export default function OssAccountsPage() {
 
   const remove = async (account: Account) => {
     if (busy) return
-    if (!window.confirm(`Delete account "${account.name}"?`)) return
+    if (!window.confirm(t.oss.deleteConfirm(account.name))) return
     setBusy(true)
     try {
       await adminApi('/oss-accounts/delete', {
@@ -109,40 +111,40 @@ export default function OssAccountsPage() {
   }
 
   const fields: { key: keyof DialogState; label: string; placeholder: string; secret?: boolean }[] = [
-    { key: 'name', label: 'Name', placeholder: 'main account' },
-    { key: 'region', label: 'Region', placeholder: 'oss-cn-shenzhen' },
-    { key: 'accessKeyId', label: 'AccessKey ID', placeholder: 'LTAI…' },
-    { key: 'accessKeySecret', label: 'AccessKey Secret', placeholder: '', secret: true },
+    { key: 'name', label: t.common.name, placeholder: t.oss.namePlaceholder },
+    { key: 'region', label: t.oss.region, placeholder: t.oss.regionPlaceholder },
+    { key: 'accessKeyId', label: t.oss.accessKeyId, placeholder: 'LTAI…' },
+    { key: 'accessKeySecret', label: t.oss.accessKeySecret, placeholder: '', secret: true },
   ]
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex items-center">
         <p className="text-muted-foreground text-sm">
-          Aliyun OSS connections — credentials are stored on the server only.
+          {t.oss.description}
         </p>
         <Button size="sm" className="ml-auto" disabled={busy} onClick={() => { setError(''); setDialog({ ...emptyDialog }) }}>
           <IconPlus />
-          Add Account
+          {t.oss.addAccount}
         </Button>
       </div>
-      {loadError && <div role="alert" className="flex items-center justify-between gap-4 text-sm"><p className="text-destructive">{loadError}</p><Button variant="outline" onClick={() => void load()}>Retry</Button></div>}
+      {loadError && <div role="alert" className="flex items-center justify-between gap-4 text-sm"><p className="text-destructive">{loadError}</p><Button variant="outline" onClick={() => void load()}>{t.common.retry}</Button></div>}
       <div className="flex-1 overflow-hidden rounded-lg border">
         {accounts === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            {loadError ? 'Accounts could not be loaded' : 'Loading…'}
+            {loadError ? t.oss.loadFailed : t.common.loading}
           </div>
         ) : accounts.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            No OSS accounts configured
+            {t.oss.empty}
           </div>
         ) : (
           <div className="h-full overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="pl-3">Name</TableHead>
-                  <TableHead className="w-48">Region</TableHead>
+                  <TableHead className="pl-3">{t.common.name}</TableHead>
+                  <TableHead className="w-48">{t.oss.region}</TableHead>
                   <TableHead className="w-24" />
                 </TableRow>
               </TableHeader>
@@ -157,7 +159,7 @@ export default function OssAccountsPage() {
                           variant="ghost"
                           size="icon"
                           className="size-7"
-                          aria-label="Edit"
+                          aria-label={t.common.edit}
                           disabled={busy}
                           onClick={() => {
                             setError('')
@@ -177,7 +179,7 @@ export default function OssAccountsPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive size-7"
-                          aria-label="Delete"
+                          aria-label={t.common.delete}
                           disabled={busy}
                           onClick={() => void remove(account)}
                         >
@@ -196,14 +198,14 @@ export default function OssAccountsPage() {
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && !busy && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dialog?.mode === 'create' ? 'Add OSS Account' : 'Edit OSS Account'}</DialogTitle>
+            <DialogTitle>{dialog?.mode === 'create' ? t.oss.addTitle : t.oss.editTitle}</DialogTitle>
           </DialogHeader>
           <fieldset disabled={busy} className="flex flex-col gap-4">
             {fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-2">
                 <Label htmlFor={`oss-${f.key}`}>
                   {f.label}
-                  {dialog?.mode === 'edit' && f.secret ? ' (leave blank to keep)' : ''}
+                  {dialog?.mode === 'edit' && f.secret ? t.oss.secretKeep : ''}
                 </Label>
                 <Input
                   id={`oss-${f.key}`}
@@ -220,7 +222,7 @@ export default function OssAccountsPage() {
           </fieldset>
           <DialogFooter>
             <Button variant="outline" disabled={busy} onClick={() => setDialog(null)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               onClick={() => void save()}
@@ -232,7 +234,7 @@ export default function OssAccountsPage() {
                   (!dialog.accessKeyId.trim() || !dialog.accessKeySecret.trim()))
               }
             >
-              {busy ? 'Saving…' : dialog?.mode === 'create' ? 'Add' : 'Save'}
+              {busy ? t.common.saving : dialog?.mode === 'create' ? t.common.add : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

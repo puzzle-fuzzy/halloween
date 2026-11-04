@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
 import { adminApi, checkSession } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 interface DeviceRequest {
   name: string
@@ -18,6 +19,7 @@ type Stage = 'checking' | 'need-password' | 'ready' | 'submitting' | 'approved' 
 
 export default function DevicePage() {
   const { code = '' } = useParams()
+  const { t } = useI18n()
   const [stage, setStage] = React.useState<Stage>('checking')
   const [device, setDevice] = React.useState<DeviceRequest | null>(null)
   const [password, setPassword] = React.useState('')
@@ -35,7 +37,7 @@ export default function DevicePage() {
     setDevice(null)
     setError('')
     void (async () => {
-      if (!/^\d{6}$/.test(code)) throw new Error('Invalid authorization code. Start sign-in again in the app.')
+      if (!/^\d{6}$/.test(code)) throw new Error(t.device.invalidCode)
       if (!(await checkSession(controller.signal))) {
         if (!controller.signal.aborted) setStage('need-password')
         return
@@ -95,41 +97,41 @@ export default function DevicePage() {
     <div className="bg-muted/40 flex min-h-screen items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><IconDeviceDesktop className="size-5" />Device authorization</CardTitle>
-          <CardDescription>Only approve a request you started in your Halloween app.</CardDescription>
+          <CardTitle className="flex items-center gap-2"><IconDeviceDesktop className="size-5" />{t.device.title}</CardTitle>
+          <CardDescription>{t.device.description}</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
           {stage === 'approved' ? (
-            <p className="flex items-center gap-2 text-sm"><IconCircleCheck className="size-4" />Approved — return to the app.</p>
-          ) : stage === 'denied' ? <p className="text-sm">Access denied. You can close this page.</p> : (
+            <p className="flex items-center gap-2 text-sm"><IconCircleCheck className="size-4" />{t.device.approved}</p>
+          ) : stage === 'denied' ? <p className="text-sm">{t.device.denied}</p> : (
             <>
               <div className="bg-muted rounded-lg p-4 text-center">
-                <p className="text-muted-foreground text-xs">Authorization code</p>
+                <p className="text-muted-foreground text-xs">{t.device.code}</p>
                 <p className="mt-2 font-mono text-3xl tracking-widest">{code}</p>
               </div>
               {device && <div className="space-y-2 text-sm">
-                <p>Device: <strong className="break-all">{device.name}</strong></p>
-                <p className="text-muted-foreground">{expired ? 'This request has expired. Start sign-in again in the app.' : `Expires at ${new Date(device.expiresAt).toLocaleTimeString()}`}</p>
-                <p>Compare this code with the code in the app before granting access to your files and OSS storage.</p>
+                <p>{t.device.deviceLabel} <strong className="break-all">{device.name}</strong></p>
+                <p className="text-muted-foreground">{expired ? t.device.expired : t.device.expiresAt(new Date(device.expiresAt).toLocaleTimeString())}</p>
+                <p>{t.device.compareHint}</p>
               </div>}
             </>
           )}
           {stage === 'need-password' && (
             <form id="device-sign-in" onSubmit={(e) => { e.preventDefault(); void signIn() }} className="flex flex-col gap-2">
-              <Label htmlFor="password">Admin password</Label>
+              <Label htmlFor="password">{t.device.adminPassword}</Label>
               <Input id="password" type="password" autoFocus autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
             </form>
           )}
-          {(stage === 'checking' || stage === 'submitting') && <p className="text-muted-foreground text-sm">Please wait…</p>}
+          {(stage === 'checking' || stage === 'submitting') && <p className="text-muted-foreground text-sm">{t.device.pleaseWait}</p>}
           {error && <p role="alert" className="text-destructive break-words text-sm">{error}</p>}
         </CardContent>
         <CardFooter className="gap-2">
-          {stage === 'need-password' && <Button className="w-full" type="submit" form="device-sign-in" disabled={!password}>Sign in to review request</Button>}
+          {stage === 'need-password' && <Button className="w-full" type="submit" form="device-sign-in" disabled={!password}>{t.device.signInToReview}</Button>}
           {stage === 'ready' && !expired && <>
-            <Button variant="outline" className="flex-1" onClick={() => void decide('deny')}>Deny</Button>
-            <Button className="flex-1" onClick={() => void decide('approve')}>Approve device</Button>
+            <Button variant="outline" className="flex-1" onClick={() => void decide('deny')}>{t.device.deny}</Button>
+            <Button className="flex-1" onClick={() => void decide('approve')}>{t.device.approve}</Button>
           </>}
-          {stage === 'error' && <Button variant="outline" className="w-full" onClick={() => setAttempt((n) => n + 1)}>Check request again</Button>}
+          {stage === 'error' && <Button variant="outline" className="w-full" onClick={() => setAttempt((n) => n + 1)}>{t.device.checkAgain}</Button>}
         </CardFooter>
       </Card>
     </div>

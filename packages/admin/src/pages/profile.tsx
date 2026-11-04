@@ -5,6 +5,7 @@ import { Button } from "@halloween/ui/button"
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
 import { adminApi, checkSession } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 interface Profile {
   name: string
@@ -15,6 +16,7 @@ interface Profile {
 const MAX_AVATAR_BYTES = 300 * 1024
 
 export default function ProfilePage() {
+  const { t } = useI18n()
   const [profile, setProfile] = React.useState<Profile | null>(null)
   const [saving, setSaving] = React.useState(false)
   const [reading, setReading] = React.useState(false)
@@ -58,7 +60,7 @@ export default function ProfilePage() {
       return
     }
     if (file.size > MAX_AVATAR_BYTES) {
-      setMessage('Avatar image must be under 300 KB')
+      setMessage(t.profile.avatarTooLarge)
       return
     }
     const reader = new FileReader()
@@ -78,7 +80,7 @@ export default function ProfilePage() {
         body: JSON.stringify(profile),
       })
       setProfile(res.profile)
-      setMessage('Saved')
+      setMessage(t.profile.saved)
     } catch (e) {
       setMessage(String(e))
     } finally {
@@ -89,7 +91,7 @@ export default function ProfilePage() {
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <p className="text-muted-foreground text-sm">
-        Shown in the desktop app after it signs in.
+        {t.profile.description}
       </p>
       <fieldset disabled={saving || reading} className="max-w-xl space-y-6 rounded-lg border p-6">
         <div className="flex items-center gap-4">
@@ -105,7 +107,7 @@ export default function ProfilePage() {
             </div>
           )}
           <div className="flex flex-col gap-2">
-            <Label className="sr-only">Avatar</Label>
+            <Label className="sr-only">{t.profile.avatar}</Label>
             <Input
               ref={fileInput}
               type="file"
@@ -129,26 +131,26 @@ export default function ProfilePage() {
               {profile.avatar && (
                 <Button variant="ghost" size="sm" onClick={() => set({ avatar: '' })}>
                   <IconX />
-                  Remove
+                  {t.profile.remove}
                 </Button>
               )}
             </div>
-            <p className="text-muted-foreground text-xs">PNG / JPG / WebP, up to 300 KB</p>
+            <p className="text-muted-foreground text-xs">{t.profile.avatarHint}</p>
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="name">Nickname</Label>
+          <Label htmlFor="name">{t.profile.nickname}</Label>
           <Input
             id="name"
-            placeholder="Nickname"
+            placeholder={t.profile.nickname}
             value={profile.name}
             onChange={(e) => set({ name: e.target.value })}
           />
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email">{t.profile.email}</Label>
           <Input
             id="email"
             type="email"
@@ -162,7 +164,7 @@ export default function ProfilePage() {
           {message && <p className="text-muted-foreground text-sm">{message}</p>}
           <Button size="sm" disabled={saving || reading} onClick={() => void save()}>
             <IconUpload />
-            {saving ? 'Saving…' : 'Save'}
+            {saving ? t.common.saving : t.common.save}
           </Button>
         </div>
       </fieldset>

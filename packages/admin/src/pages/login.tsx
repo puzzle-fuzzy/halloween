@@ -14,9 +14,11 @@ import {
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
 import { adminApi } from "@/lib/api"
+import { useI18n } from "@/i18n"
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const [password, setPassword] = React.useState("")
   const [error, setError] = React.useState("")
   const [busy, setBusy] = React.useState(false)
@@ -29,7 +31,7 @@ export default function LoginPage() {
       await adminApi('/login', { method: 'POST', body: JSON.stringify({ password }) })
       navigate('/', { replace: true })
     } catch (e) {
-      setError(String(e).includes('wrong password') ? 'Wrong password' : String(e))
+      setError(String(e).includes('wrong password') ? t.login.wrongPassword : String(e))
     } finally {
       setBusy(false)
     }
@@ -41,13 +43,13 @@ export default function LoginPage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <IconShieldHalf className="size-5" />
-            Halloween Admin
+            {t.login.title}
           </CardTitle>
-          <CardDescription>Enter the admin password to continue</CardDescription>
+          <CardDescription>{t.login.description}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex flex-col gap-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{t.login.password}</Label>
             <Input
               id="password"
               type="password"
@@ -61,7 +63,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter>
           <Button className="w-full" onClick={() => void submit()} disabled={!password || busy}>
-            {busy ? 'Signing in…' : 'Sign in'}
+            {busy ? t.login.signingIn : t.login.signIn}
           </Button>
         </CardFooter>
       </Card>
