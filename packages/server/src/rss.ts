@@ -7,24 +7,8 @@ import { Hono } from 'hono'
 import { XMLParser } from 'fast-xml-parser'
 import { atomicJson, migrateState } from './storage'
 
-export interface RssFeed {
-  id: string
-  /** display name; empty = use the title advertised by the feed itself */
-  title: string
-  url: string
-  enabled: boolean
-  createdAt: number
-}
-
-export interface RssItem {
-  id: string
-  feedId: string
-  feedTitle: string
-  title: string
-  link: string
-  publishedAt: number
-  summary: string
-}
+import type { RssFeed, RssItem } from '@halloween/contracts/rss'
+export type { RssFeed, RssItem }
 
 interface FeedSnapshot {
   fetchedAt: number

@@ -1,6 +1,6 @@
 import * as React from "react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 import { fileKind } from "@/lib/format"
 import { capturePlaybackPosition, createPreviewRefreshGuard, playbackTime } from "@/lib/preview-state"
 import type { PlaybackPosition } from "@/lib/preview-state"

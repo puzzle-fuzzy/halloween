@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom"
 
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger } from "@/components/ui/sidebar"
+import { Separator } from "@halloween/ui/separator"
+import { SidebarTrigger } from "@halloween/ui/sidebar"
 
 const titles: Record<string, string> = {
   "/": "Overview",

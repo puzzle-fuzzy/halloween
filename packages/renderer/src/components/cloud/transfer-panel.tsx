@@ -2,7 +2,7 @@ import * as React from "react"
 import { IconDownload, IconUpload } from "@tabler/icons-react"
 import { toast } from "sonner"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { mergeTransferSnapshots } from "@/lib/file-operations"
 import type { TransferProgress } from "@/types/global"

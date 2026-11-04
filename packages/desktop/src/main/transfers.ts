@@ -1,14 +1,6 @@
 import { randomUUID } from 'node:crypto'
-
-export interface TransferProgress {
-  id: string
-  kind: 'upload' | 'download'
-  name: string
-  loaded: number
-  total: number
-  status: 'running' | 'completed' | 'failed' | 'cancelled'
-  error?: string
-}
+import type { TransferProgress } from '@halloween/contracts/transfers'
+export type { TransferProgress } from '@halloween/contracts'
 
 export class TransferRegistry {
   private entries = new Map<string, TransferProgress>()

@@ -2,8 +2,8 @@ import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { SidebarInset, SidebarProvider } from "@halloween/ui/sidebar"
+import { TooltipProvider } from "@halloween/ui/tooltip"
 import DevicePage from "@/pages/device"
 import LoginPage from "@/pages/login"
 import OssAccountsPage from "@/pages/oss-accounts"

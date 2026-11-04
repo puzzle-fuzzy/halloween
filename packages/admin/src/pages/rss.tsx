@@ -2,18 +2,18 @@ import * as React from "react"
 import { format } from "date-fns"
 import { IconPencil, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Badge } from "@halloween/ui/badge"
+import { Button } from "@halloween/ui/button"
+import { Checkbox } from "@halloween/ui/checkbox"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@halloween/ui/dialog"
+import { Input } from "@halloween/ui/input"
+import { Label } from "@halloween/ui/label"
 import {
   Table,
   TableBody,
@@ -21,7 +21,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@halloween/ui/table"
 import { adminApi } from "@/lib/api"
 
 interface Feed {

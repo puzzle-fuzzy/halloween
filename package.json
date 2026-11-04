@@ -14,7 +14,7 @@
     "dev": "bun run --filter @halloween/desktop dev",
     "build": "bun run --filter @halloween/admin build && bun run --filter @halloween/renderer build && bun run --filter @halloween/desktop build",
     "dist": "bun run build && bun run --filter @halloween/desktop dist",
-    "typecheck": "bun run --filter @halloween/renderer typecheck && bun run --filter @halloween/desktop typecheck && bun run --filter @halloween/server typecheck && bun run --filter @halloween/admin typecheck && bun run typecheck:tools",
+    "typecheck": "bun run --filter @halloween/renderer typecheck && bun run --filter @halloween/ui typecheck && bun run --filter @halloween/desktop typecheck && bun run --filter @halloween/server typecheck && bun run --filter @halloween/admin typecheck",
     "dev:server": "bun run --filter @halloween/server dev",
     "dev:admin": "bun run --filter @halloween/admin dev",
     "test": "bun test packages",

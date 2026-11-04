@@ -2,7 +2,7 @@ import * as React from "react"
 import { useNavigate } from "react-router-dom"
 import { IconShieldHalf } from "@tabler/icons-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 import {
   Card,
   CardContent,
@@ -10,9 +10,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@halloween/ui/card"
+import { Input } from "@halloween/ui/input"
+import { Label } from "@halloween/ui/label"
 import { adminApi } from "@/lib/api"
 
 export default function LoginPage() {

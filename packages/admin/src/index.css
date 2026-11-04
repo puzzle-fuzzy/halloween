@@ -1,6 +1,8 @@
 @import "@fontsource-variable/geist";
 @import "@fontsource-variable/geist-mono";
 @import "tailwindcss";
+
+@source "../node_modules/@halloween/ui";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));

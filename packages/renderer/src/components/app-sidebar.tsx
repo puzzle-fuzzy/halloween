@@ -17,7 +17,7 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-} from "@/components/ui/sidebar"
+} from "@halloween/ui/sidebar"
 
 const data = {
   navMain: [

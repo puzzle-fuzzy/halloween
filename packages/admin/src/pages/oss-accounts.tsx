@@ -1,16 +1,16 @@
 import * as React from "react"
 import { IconPencil, IconPlus, IconTrash } from "@tabler/icons-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+} from "@halloween/ui/dialog"
+import { Input } from "@halloween/ui/input"
+import { Label } from "@halloween/ui/label"
 import {
   Table,
   TableBody,
@@ -18,7 +18,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@halloween/ui/table"
 import { adminApi } from "@/lib/api"
 
 interface Account {

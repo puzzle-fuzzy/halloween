@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { TrashPurgeInput, BackupStartInput } from '@halloween/contracts'
+import type { TransferProgress } from '@halloween/contracts/transfers'
 
 contextBridge.exposeInMainWorld('electron', {
   versions: process.versions,
@@ -46,17 +47,7 @@ contextBridge.exposeInMainWorld('electron', {
     chooseDownloadDir: () => ipcRenderer.invoke('cloud:choose-download-dir'),
     downloadTo: (remotePath: string, name: string, targetDir: string) =>
       ipcRenderer.invoke('cloud:download-to', remotePath, name, targetDir),
-    onProgress: (
-      callback: (progress: {
-        id: string
-        kind: 'upload' | 'download'
-        name: string
-        loaded: number
-        total: number
-        status: 'running' | 'completed' | 'failed' | 'cancelled'
-        error?: string
-      }) => void
-    ) => {
+    onProgress: (callback: (progress: TransferProgress) => void) => {
       const listener = (_event: unknown, progress: unknown) => callback(progress as never)
       ipcRenderer.on('cloud:progress', listener)
       return () => ipcRenderer.removeListener('cloud:progress', listener)

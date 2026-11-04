@@ -1,7 +1,7 @@
 import { useLocation } from "react-router-dom"
 
-import { Separator } from "@/components/ui/separator"
-import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
+import { Separator } from "@halloween/ui/separator"
+import { SidebarTrigger, useSidebar } from "@halloween/ui/sidebar"
 import { WindowControls } from "@/components/window-controls"
 import { cn } from "@/lib/utils"
 

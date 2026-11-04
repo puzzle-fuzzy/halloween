@@ -10,7 +10,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@halloween/ui/sidebar"
 import { IconBucket, IconDevices, IconGauge, IconLogout, IconRss, IconShieldHalf, IconUserCircle } from "@tabler/icons-react"
 import { adminApi } from "@/lib/api"
 

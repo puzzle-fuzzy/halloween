@@ -28,13 +28,13 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@halloween/ui/dropdown-menu"
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
+} from "@halloween/ui/sidebar"
 
 const GITHUB_URL = "https://github.com/puzzle-fuzzy/halloween"
 

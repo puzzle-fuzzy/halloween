@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 
 interface State {
   error: Error | null

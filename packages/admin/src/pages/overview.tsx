@@ -10,9 +10,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
-import { Button } from "@/components/ui/button"
+} from "@halloween/ui/card"
+import { Skeleton } from "@halloween/ui/skeleton"
+import { Button } from "@halloween/ui/button"
 import { adminApi, checkSession } from "@/lib/api"
 
 interface Stats {

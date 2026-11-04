@@ -13,13 +13,8 @@ import type { TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResul
 export type { TransferProgress } from './transfers'
 export { DEFAULT_SERVER_URL } from './config-store'
 
-export interface CloudEntry {
-  name: string
-  type: 'dir' | 'file'
-  size: number
-  mtime: number
-  path: string
-}
+import type { FileEntry as CloudEntry } from '@halloween/contracts/files'
+export type { CloudEntry }
 
 let getWin: () => BrowserWindow | null = () => null
 const signIn = new SignInAttempt()

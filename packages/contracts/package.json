@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/recovery.ts"
+    ".": "./src/index.ts",
+    "./recovery": "./src/recovery.ts",
+    "./files": "./src/files.ts",
+    "./oss": "./src/oss.ts",
+    "./rss": "./src/rss.ts",
+    "./transfers": "./src/transfers.ts"
   }
 }

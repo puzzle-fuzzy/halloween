@@ -7,8 +7,9 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { atomicJson, HTTPError, migrateState, serialExecutor } from './storage'
 import { jsonBody } from './http'
 
+import type { OssEntry } from '@halloween/contracts/oss'
+export type { OssEntry } from '@halloween/contracts/oss'
 export interface OssAccount { id: string; name: string; region: string; accessKeyId: string; accessKeySecret: string }
-export interface OssEntry { name: string; key: string; type: 'dir' | 'file'; size: number; mtime: number }
 interface Listing { objects?: { name: string; size?: number | string; lastModified?: string }[]; prefixes?: string[]; isTruncated?: boolean; nextMarker?: string | null }
 interface ObjectMetadata { res: { headers: Record<string, string> }; meta?: Record<string, string> | null }
 export interface OssClient {

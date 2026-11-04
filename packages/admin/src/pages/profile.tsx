@@ -1,9 +1,9 @@
 import * as React from "react"
 import { IconUpload, IconX } from "@tabler/icons-react"
 
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@halloween/ui/button"
+import { Input } from "@halloween/ui/input"
+import { Label } from "@halloween/ui/label"
 import { adminApi, checkSession } from "@/lib/api"
 
 interface Profile {

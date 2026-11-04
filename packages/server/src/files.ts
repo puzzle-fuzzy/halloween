@@ -4,9 +4,9 @@ import { randomUUID } from 'node:crypto'
 import { HTTPError, serialExecutor } from './storage'
 import { TrashStore } from './trash'
 import type { TrashIO, TrashList, TrashRestore, TrashPurgeResult } from './trash'
+import type { FileEntry } from '@halloween/contracts/files'
 export type { TrashEntry, TrashList, TrashRestore, TrashPurgeResult } from './trash'
-
-export interface FileEntry { name: string; type: 'dir' | 'file'; size: number; mtime: number; path: string }
+export type { FileEntry } from '@halloween/contracts/files'
 
 export function relativePath(value: unknown): string {
   if (typeof value !== 'string' || value.includes('\0') || value.includes('\\')) throw new HTTPError(400, 'invalid path')

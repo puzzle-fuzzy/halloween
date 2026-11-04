@@ -3,9 +3,9 @@ import { Link } from "react-router-dom"
 import { IconArrowRight, IconBucket, IconCloud, IconRefresh } from "@tabler/icons-react"
 
 import { useCloudAuth } from "@/components/cloud/auth"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@halloween/ui/badge"
+import { Button } from "@halloween/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@halloween/ui/card"
 import { formatBytes, formatTime } from "@/lib/format"
 import type { CloudEntry } from "@/types/global"
 

@@ -2,10 +2,10 @@ import * as React from "react"
 import { useParams } from "react-router-dom"
 import { IconCircleCheck, IconDeviceDesktop } from "@tabler/icons-react"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Button } from "@halloween/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@halloween/ui/card"
+import { Input } from "@halloween/ui/input"
+import { Label } from "@halloween/ui/label"
 import { adminApi, checkSession } from "@/lib/api"
 
 interface DeviceRequest {

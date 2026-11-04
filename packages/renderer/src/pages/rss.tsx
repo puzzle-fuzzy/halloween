@@ -2,9 +2,9 @@ import * as React from "react"
 import { IconExternalLink, IconRefresh } from "@tabler/icons-react"
 
 import { useCloudAuth } from "@/components/cloud/auth"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@halloween/ui/badge"
+import { Button } from "@halloween/ui/button"
+import { Card, CardContent } from "@halloween/ui/card"
 import {
   Select,
   SelectContent,

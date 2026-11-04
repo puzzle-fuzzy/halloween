@@ -7,25 +7,8 @@ import { getConfig } from './cloud'
 import { downloadFile } from './download'
 import { transfers } from './transfers'
 
-export interface OssAccountInfo {
-  id: string
-  name: string
-  region: string
-}
-
-export interface OssBucketInfo {
-  name: string
-  region?: string
-  createdAt: number
-}
-
-export interface OssEntry {
-  name: string
-  key: string
-  type: 'dir' | 'file'
-  size: number
-  mtime: number
-}
+import type { OssAccountInfo, OssBucketInfo, OssEntry } from '@halloween/contracts/oss'
+export type { OssAccountInfo, OssBucketInfo, OssEntry }
 
 /** OSS API lives at <site-origin>/oss — NOT under the cloud serverUrl prefix */
 async function ossApiJson<T>(pathname: string, init?: RequestInit): Promise<T> {

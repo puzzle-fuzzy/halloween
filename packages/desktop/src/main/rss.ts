@@ -1,15 +1,8 @@
 import { ipcMain, shell } from 'electron'
 import { apiJson } from './cloud'
 
-export interface RssItem {
-  id: string
-  feedId: string
-  feedTitle: string
-  title: string
-  link: string
-  publishedAt: number
-  summary: string
-}
+import type { RssItem } from '@halloween/contracts/rss'
+export type { RssItem }
 
 /** RSS items are served from the server-side cache — the desktop only reads */
 export function registerRssHandlers(): void {

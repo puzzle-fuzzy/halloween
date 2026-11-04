@@ -15,8 +15,8 @@ import {
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Badge } from "@halloween/ui/badge"
+import { Button } from "@halloween/ui/button"
 import {
   Card,
   CardAction,
@@ -25,15 +25,15 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@halloween/ui/card"
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart"
-import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
+import { Input } from "@halloween/ui/input"
+import { Separator } from "@halloween/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { formatSpeed, formatTime } from "@/lib/format"

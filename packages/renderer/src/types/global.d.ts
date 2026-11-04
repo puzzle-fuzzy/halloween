@@ -1,59 +1,13 @@
-import type { TrashListing, TrashPurgeInput, TrashPurgeResult, BackupStatus, BackupJobKind, BackupJob } from "@halloween/contracts"
-export type { TrashEntry, TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResult, BackupJobKind, BackupJob, BackupSnapshot, BackupStatus, BackupStartInput } from "@halloween/contracts"
+import type { TrashListing, TrashPurgeInput, TrashPurgeResult, BackupStatus, BackupJobKind, BackupJob, FileEntry as CloudEntry, OssAccountInfo, OssBucketInfo, OssEntry, RssItem, TransferProgress } from "@halloween/contracts"
+export type { TrashEntry, TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResult, BackupJobKind, BackupJob, BackupSnapshot, BackupStatus, BackupStartInput, FileEntry, OssAccountInfo, OssBucketInfo, OssEntry, RssFeed, RssItem, TransferProgress } from "@halloween/contracts"
 
 export {}
 
-export interface CloudEntry {
-  name: string
-  type: 'dir' | 'file'
-  size: number
-  mtime: number
-  path: string
-}
+export type { CloudEntry }
 
 export interface CloudConfig {
   serverUrl: string
   token: string
-}
-
-export interface TransferProgress {
-  id: string
-  kind: 'upload' | 'download'
-  name: string
-  loaded: number
-  total: number
-  status: 'running' | 'completed' | 'failed' | 'cancelled'
-  error?: string
-}
-
-export interface OssAccountInfo {
-  id: string
-  name: string
-  region: string
-}
-
-export interface OssBucketInfo {
-  name: string
-  region?: string
-  createdAt: number
-}
-
-export interface OssEntry {
-  name: string
-  key: string
-  type: 'dir' | 'file'
-  size: number
-  mtime: number
-}
-
-export interface RssItem {
-  id: string
-  feedId: string
-  feedTitle: string
-  title: string
-  link: string
-  publishedAt: number
-  summary: string
 }
 
 export interface ProxySubscriptionInfo {

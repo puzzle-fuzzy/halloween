@@ -7,8 +7,8 @@ import { CloudAuthProvider } from "@/components/cloud/auth"
 import { TransferPanel } from "@/components/cloud/transfer-panel"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SiteHeader } from "@/components/site-header"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { TooltipProvider } from "@/components/ui/tooltip"
+import { SidebarInset, SidebarProvider } from "@halloween/ui/sidebar"
+import { TooltipProvider } from "@halloween/ui/tooltip"
 import DashboardPage from "@/pages/dashboard"
 
 const CloudDrivePage = lazy(() => import("@/pages/cloud-drive"))

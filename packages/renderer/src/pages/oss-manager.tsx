@@ -19,22 +19,22 @@ import { toast } from "sonner"
 
 import { useCloudAuth } from "@/components/cloud/auth"
 import { MediaPreview } from "@/components/cloud/media-preview"
-import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
+import { Button } from "@halloween/ui/button"
+import { Checkbox } from "@halloween/ui/checkbox"
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "@halloween/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
+} from "@halloween/ui/dropdown-menu"
+import { Input } from "@halloween/ui/input"
 import {
   Select,
   SelectContent,
@@ -49,7 +49,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@halloween/ui/table"
 import { fileKind, formatBytes, formatTime } from "@/lib/format"
 import { createRequestTracker, fileOperationError, isTransferCancelled, mergeEntries, selectVisibleKeys } from "@/lib/file-operations"
 import type { OssAccountInfo, OssBucketInfo, OssEntry } from "@/types/global"

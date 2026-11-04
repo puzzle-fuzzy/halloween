@@ -2,7 +2,7 @@ import * as React from "react"
 import { format } from "date-fns"
 import { IconTrash } from "@tabler/icons-react"
 
-import { Button } from "@/components/ui/button"
+import { Button } from "@halloween/ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@halloween/ui/table"
 import { adminApi, checkSession } from "@/lib/api"
 
 interface Device {
