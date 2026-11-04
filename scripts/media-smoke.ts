@@ -157,6 +157,9 @@ const refreshAt=async(win,time,paused)=>{
 app.whenReady().then(async()=>{
  const win=new BrowserWindow({show:false,webPreferences:{preload:${JSON.stringify(preload)},contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
  await win.loadURL(origin+'/');
+ // pin the language: locale detection renders 中文 on zh hosts and breaks the EN assertions
+ await win.webContents.executeJavaScript("localStorage.setItem('halloween:lang','en')");
+ await win.loadURL(origin+'/');
  await open(win,'/cloud');
  await refreshAt(win,47.25,true);
  await refreshAt(win,91,false);

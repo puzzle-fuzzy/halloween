@@ -53,13 +53,19 @@ const waitFor = async (win, expression) => {
     if(await win.webContents.executeJavaScript(expression)) return;
     await new Promise(resolve => setTimeout(resolve,100));
   }
-  throw new Error('UI condition timed out: ' + expression);
+  const text = await win.webContents.executeJavaScript("document.body.innerText.slice(0, 300)").catch(() => '(page gone)');
+  throw new Error('UI condition timed out: ' + expression + ' | page: ' + text);
 };
 const check = async (decision) => {
   const name = decision === 'approve' ? 'Smoke desktop' : 'Denied desktop';
   const device = await api('/cloud/api/device/code', {name});
   const win = new BrowserWindow({show:false,webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});
+  // pin the language: locale detection renders 中文 on zh hosts and the EN-string
+  // assertions fail — set storage then do a real reload so the provider re-inits
   await win.loadURL(origin + '/admin/#/device/' + device.user_code);
+  await win.webContents.executeJavaScript("localStorage.setItem('halloween-admin:lang','en')");
+  await win.webContents.reload();
+  await new Promise(resolve => setTimeout(resolve, 300));
   await waitFor(win, 'document.body.innerText.includes("' + name + '") && document.body.innerText.includes("Approve device")');
   assert(await win.webContents.executeJavaScript('document.body.innerText.includes(' + JSON.stringify(device.user_code) + ')'), 'authorization code is visible');
   assert.equal((await api('/cloud/api/device/token',{device_code:device.device_code})).status, 'pending', 'opening the page must not approve');

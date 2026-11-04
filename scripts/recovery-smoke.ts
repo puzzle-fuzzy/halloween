@@ -260,6 +260,9 @@ const checkConfigured=async(win)=>{
 const createWindow=async()=>{
  const win=new BrowserWindow({show:false,webPreferences:{preload:${JSON.stringify(preload)},contextIsolation:true,nodeIntegration:false,sandbox:true,backgroundThrottling:false}});
  await win.loadURL(current.origin+'/renderer/');
+ // pin the language: locale detection renders 中文 on zh hosts and breaks the EN assertions
+ await win.webContents.executeJavaScript("localStorage.setItem('halloween:lang','en')");
+ await win.loadURL(current.origin+'/renderer/');
  await waitFor(win,'[...document.querySelectorAll("a")].some(link=>link.getAttribute("href")==="/trash")','renderer ready');
  return win;
 };
