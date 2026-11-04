@@ -7,7 +7,7 @@ import type { ContentfulStatusCode } from 'hono/utils/http-status'
 import { getCookie, setCookie } from 'hono/cookie'
 import { bodyLimit } from 'hono/body-limit'
 import { createOssService } from './oss'
-import { initRss, registerRssAdmin, registerRssCloud } from './rss'
+import { createRssService } from './rss'
 import type { OssClientFactory } from './oss'
 import { CloudFiles, relativePath } from './files'
 import { atomicJson, HTTPError, initializeRoots, migrateState } from './storage'
@@ -95,7 +95,7 @@ export async function createApplication(options: ApplicationOptions): Promise<Ho
   const maxUploadBytes = options.maxUploadBytes ?? 100 * 1024 ** 3
   if (!Number.isSafeInteger(maxUploadBytes) || maxUploadBytes <= 0) throw new Error('MAX_UPLOAD_BYTES must be a positive safe integer')
   const files = new CloudFiles(dataRoot, stateRoot, maxUploadBytes)
-  await initRss({ dataRoot, stateRoot })
+  const rss = await createRssService({ dataRoot, stateRoot })
   const now = options.now ?? Date.now
   const limiter = new RateLimiter(now)
   const mutate = <T>(work: () => Promise<T>) => files.withSnapshot(work)
@@ -341,8 +341,8 @@ export async function createApplication(options: ApplicationOptions): Promise<Ho
   }))
   const oss = await createOssService({ ...roots, auth: cloudAuth, clientFactory: options.ossClientFactory, withStateMutation: mutate })
   oss.registerAdmin(admin)
-  registerRssAdmin(admin)
-  registerRssCloud(cloud)
+  rss.registerAdmin(admin)
+  rss.registerCloud(cloud)
   const backups = await createBackupManager({ ...roots, withSnapshot: mutate, config: options.backupConfig ?? {}, runner: options.backupRunner })
   cloud.get('/api/backups/status', (c) => c.json(backups.status()))
   cloud.post('/api/backups/jobs', async (c) => {

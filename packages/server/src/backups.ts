@@ -19,7 +19,7 @@ export type ResticRunner = (request: ResticRequest) => Promise<ResticResult>
 const TAG = 'halloween-personal-cloud-v1'
 const ID = /^[a-f0-9]{64}$/
 const JOB_ID = /^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/
-const CONTROL_FILES = ['tokens.json', 'profile.json', 'oss-accounts.json', 'trash']
+const CONTROL_FILES = ['tokens.json', 'profile.json', 'oss-accounts.json', 'rss-feeds.json', 'trash']
 
 /** No application master token/password or arbitrary RESTIC_PASSWORD_COMMAND reaches the child. */
 export function backupConfigFromEnv(env: NodeJS.ProcessEnv = process.env): BackupConfig {
