@@ -15,6 +15,8 @@ const GROUP = '🚀 Node'
 const FETCH_TIMEOUT_MS = 15_000
 const CORE_START_TIMEOUT_MS = 10_000
 const DELAY_TEST_URL = 'https://www.gstatic.com/generate_204'
+/** system proxy (registry) and TUN (schtasks elevation) are windows-only machinery */
+const SUPPORTED = process.platform === 'win32'
 
 export interface ProxySubscription {
   id: string
@@ -311,7 +313,9 @@ function binaryPath(): string {
   if (fs.existsSync(dev)) return dev
   const prod = path.join(process.resourcesPath ?? '', 'mihomo.exe')
   if (fs.existsSync(prod)) return prod
-  throw new Error('mihomo.exe not found — place it in packages/desktop/resources/')
+  throw new Error(
+    'mihomo.exe not found — run "bun scripts/ensure-mihomo.mjs" in packages/desktop (see resources/README.md)'
+  )
 }
 
 function portFree(port: number): Promise<boolean> {
@@ -387,6 +391,20 @@ async function writeCoreConfig(proxies: ClashProxy[], tun: boolean): Promise<voi
   await fsp.writeFile(path.join(dir, 'config.yaml'), stringifyYaml(doc), 'utf-8')
 }
 
+/** the task-launched core writes no piped stdout — its file log is the only failure evidence */
+async function tailCoreLogFile(): Promise<string> {
+  try {
+    const dir = path.join(workRoot(), 'logs')
+    const files = (await fsp.readdir(dir)).filter((f) => f.endsWith('.log'))
+    if (files.length === 0) return ''
+    const latest = files.sort().at(-1)!
+    const text = await fsp.readFile(path.join(dir, latest), 'utf-8')
+    return text.slice(-2000)
+  } catch {
+    return ''
+  }
+}
+
 async function startCore(): Promise<void> {
   if (state.running || state.busy) return
   state.busy = true
@@ -442,7 +460,8 @@ async function startCore(): Promise<void> {
       } catch (err) {
         if (Date.now() > deadline || (!tun && core === null)) {
           if (tun) await endTunTask().catch(() => {})
-          throw new Error(`core failed to start\n${coreLog || String(err)}`)
+          const tunLog = tun ? await tailCoreLogFile() : ''
+          throw new Error(`core failed to start\n${coreLog || tunLog || String(err)}`)
         }
         await new Promise((r) => setTimeout(r, 250))
       }
@@ -575,6 +594,7 @@ export function shutdownProxy(): void {
 
 function publicState() {
   return {
+    supported: SUPPORTED,
     running: state.running,
     busy: state.busy,
     sysProxy: state.sysProxy,
@@ -635,16 +655,21 @@ async function proxyDisable(): Promise<void> {
 
 export function registerProxyHandlers(getWindow: () => BrowserWindow | null): void {
   getWin = getWindow
-  void loadConfig().then(async () => {
+  // awaited by every handler — a proxy:* call right after app start must not
+  // observe the pre-load default config
+  const ready = loadConfig().then(async () => {
     state.tunReady = await taskExists()
   })
 
   ipcMain.handle('proxy:state', async () => {
+    await ready
     state.tunReady = await taskExists()
     return publicState()
   })
 
   ipcMain.handle('proxy:enable', async () => {
+    await ready
+    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
     if (state.busy) return publicState()
     try {
       await proxyEnable()
@@ -670,6 +695,8 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   })
 
   ipcMain.handle('proxy:set-mode', async (_e, mode: 'sys' | 'tun') => {
+    await ready
+    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
     if (mode !== 'sys' && mode !== 'tun') throw new Error('invalid mode')
     const wasRunning = state.running
     if (wasRunning) await proxyDisable()
@@ -680,12 +707,14 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   })
 
   ipcMain.handle('proxy:install-tun', async () => {
+    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
     await installTunTask()
     state.tunReady = await taskExists()
     return publicState()
   })
 
   ipcMain.handle('proxy:subs:add', async (_e, url: string) => {
+    await ready
     const clean = url.trim()
     if (!/^https?:\/\//i.test(clean)) {
       throw new Error('a valid http(s) subscription URL is required')
@@ -706,6 +735,7 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   })
 
   ipcMain.handle('proxy:subs:delete', async (_e, id: string) => {
+    await ready
     config.subscriptions = config.subscriptions.filter((s) => s.id !== id)
     delete config.subNodes[id]
     await saveConfig()
@@ -713,6 +743,7 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   })
 
   ipcMain.handle('proxy:subs:update', async (_e, id: string) => {
+    await ready
     if (!config.subscriptions.some((s) => s.id === id)) throw new Error('unknown subscription')
     if (state.running) {
       // startCore refetches everything and rewrites the config

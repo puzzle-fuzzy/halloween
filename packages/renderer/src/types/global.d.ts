@@ -65,6 +65,8 @@ export interface ProxySubscriptionInfo {
 }
 
 export interface ProxyState {
+  /** false on macOS/Linux — the proxy feature is Windows-only for now */
+  supported: boolean
   running: boolean
   busy: boolean
   sysProxy: boolean

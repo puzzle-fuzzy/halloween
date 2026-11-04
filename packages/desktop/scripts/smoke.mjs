@@ -35,6 +35,15 @@ app.whenReady().then(async () => {
   }
   await assert.rejects(first.webContents.executeJavaScript('window.electron.cloud.listTrash()'), /not configured|Sign in/i);
   await assert.rejects(first.webContents.executeJavaScript('window.electron.cloud.backupStatus()'), /not configured|Sign in/i);
+  // proxy surface: state answers everywhere; core actions are gated off windows
+  assert.equal(await first.webContents.executeJavaScript('typeof window.electron.proxy.state'), 'function');
+  const proxyState = await first.webContents.executeJavaScript('window.electron.proxy.state()');
+  assert.equal(proxyState.supported, ${process.platform === 'win32'}, 'supported flag matches the build platform');
+  assert(Array.isArray(proxyState.cachedNodes));
+  if (${process.platform !== 'win32'}) {
+    await assert.rejects(first.webContents.executeJavaScript('window.electron.proxy.enable()'), /Windows/);
+    await assert.rejects(first.webContents.executeJavaScript('window.electron.proxy.installTun()'), /Windows/);
+  }
   assert.equal(await first.webContents.executeJavaScript('typeof require'), 'undefined');
   assert.equal(await first.webContents.executeJavaScript('window.electron.cloud.isAuthed()'), false);
   assert.equal(await first.webContents.executeJavaScript('window.electron.window.isMaximized()'), false);

@@ -8,7 +8,7 @@
     "dev": "bun scripts/dev.mjs",
     "build": "bun scripts/build.mjs",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win",
+    "dist:win": "node scripts/ensure-mihomo.mjs && electron-builder --win",
     "dist:mac": "electron-builder --mac",
     "test": "bun test tests",
     "test:smoke": "node scripts/smoke.mjs",

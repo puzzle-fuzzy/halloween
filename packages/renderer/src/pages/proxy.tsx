@@ -48,6 +48,7 @@ const chartConfig = {
 
 export default function ProxyPage() {
   const proxy = window.electron?.proxy
+  const isWindows = window.electron?.platform === "win32"
   const [state, setState] = React.useState<ProxyState | null>(null)
   const [nodes, setNodes] = React.useState<ProxyNodes | null>(null)
   const [samples, setSamples] = React.useState<
@@ -158,6 +159,26 @@ export default function ProxyPage() {
     } finally {
       setTesting(false)
     }
+  }
+
+  if (!isWindows) {
+    return (
+      <div className="flex flex-1 items-center justify-center px-4">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <IconShieldLock className="size-5" />
+              Proxy is Windows-only for now
+            </CardTitle>
+            <CardDescription>
+              The proxy core (mihomo), system-proxy integration and TUN mode rely on
+              Windows machinery. macOS support may come later — subscriptions and
+              settings you configure on Windows will be there when it does.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    )
   }
 
   if (!proxy || state === null) {
