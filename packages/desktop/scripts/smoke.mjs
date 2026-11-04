@@ -43,10 +43,13 @@ app.whenReady().then(async () => {
   // proxy surface: state answers everywhere; core actions are gated off windows
   assert.equal(await first.webContents.executeJavaScript('typeof window.electron.proxy.state'), 'function');
   const proxyState = await first.webContents.executeJavaScript('window.electron.proxy.state()');
-  assert.equal(proxyState.supported, ${process.platform === 'win32'}, 'supported flag matches the build platform');
+  assert.equal(proxyState.supported, ${process.platform === 'win32' || process.platform === 'darwin'}, 'supported flag matches the build platform');
+  assert.equal(proxyState.tunSupported, ${process.platform === 'win32'}, 'tun is windows-only');
   assert(Array.isArray(proxyState.cachedNodes));
+  if (${process.platform !== 'win32' && process.platform !== 'darwin'}) {
+    await assert.rejects(first.webContents.executeJavaScript('window.electron.proxy.enable()'), /Windows and macOS/);
+  }
   if (${process.platform !== 'win32'}) {
-    await assert.rejects(first.webContents.executeJavaScript('window.electron.proxy.enable()'), /Windows/);
     await assert.rejects(first.webContents.executeJavaScript('window.electron.proxy.installTun()'), /Windows/);
   }
   assert.equal(await first.webContents.executeJavaScript('typeof require'), 'undefined');

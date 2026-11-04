@@ -49,7 +49,8 @@ const chartConfig = {
 export default function ProxyPage() {
   const { t } = useI18n()
   const proxy = window.electron?.proxy
-  const isWindows = window.electron?.platform === "win32"
+  const proxySupported =
+    window.electron?.platform === "win32" || window.electron?.platform === "darwin"
   const [state, setState] = React.useState<ProxyState | null>(null)
   const [nodes, setNodes] = React.useState<ProxyNodes | null>(null)
   const [samples, setSamples] = React.useState<
@@ -166,7 +167,7 @@ export default function ProxyPage() {
     }
   }
 
-  if (!isWindows) {
+  if (!proxySupported) {
     return (
       <div className="flex flex-1 items-center justify-center px-4">
         <Card className="max-w-md">
@@ -175,7 +176,7 @@ export default function ProxyPage() {
               <IconShieldLock className="size-5" />
               {t.proxy.windowsOnlyTitle}
             </CardTitle>
-            <CardDescription>{t.proxy.windowsOnlyDesc}</CardDescription>
+            <CardDescription>{t.proxy.unsupportedDesc}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -213,10 +214,15 @@ export default function ProxyPage() {
           size="sm"
           value={state.mode}
           onValueChange={(v) => v && void setMode(v as "sys" | "tun")}
-          disabled={state.busy}
+          disabled={state.busy || !state.tunSupported}
         >
           <ToggleGroupItem value="sys">{t.proxy.systemProxy}</ToggleGroupItem>
-          <ToggleGroupItem value="tun">{t.proxy.tunAdapter}</ToggleGroupItem>
+          <ToggleGroupItem
+            value="tun"
+            title={state.tunSupported ? undefined : t.proxy.tunWindowsOnly}
+          >
+            {t.proxy.tunAdapter}
+          </ToggleGroupItem>
         </ToggleGroup>
         {state.busy && <IconLoader2 className="text-muted-foreground size-4 animate-spin" />}
         {state.lastError && (

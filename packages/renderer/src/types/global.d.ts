@@ -49,8 +49,10 @@ export interface ProxySubscriptionInfo {
 }
 
 export interface ProxyState {
-  /** false on macOS/Linux — the proxy feature is Windows-only for now */
+  /** sys-proxy: windows + macos; false elsewhere */
   supported: boolean
+  /** TUN needs windows elevation machinery */
+  tunSupported: boolean
   running: boolean
   busy: boolean
   sysProxy: boolean
@@ -174,6 +176,18 @@ declare global {
         chooseDownloadDir: () => Promise<string | null>
         downloadTo: (remotePath: string, name: string, targetDir: string) => Promise<string>
         onProgress: (callback: (progress: TransferProgress) => void) => () => void
+      }
+      updater?: {
+        check: () => Promise<{
+          current: string
+          latest: string | null
+          available: boolean | null
+          reason?: "private-repo" | "network"
+        }>
+        openReleases: () => Promise<void>
+        onUpdateAvailable: (
+          callback: (result: { current: string; latest: string; available: boolean }) => void,
+        ) => () => void
       }
       getPathForFile?: (file: File) => string
     }

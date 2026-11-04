@@ -40,7 +40,7 @@ export default function ProfilePage() {
       }
     })()
     return () => controller.abort()
-  }, [])
+  }, [attempt]) // manual retry token
 
   if (profile === null) {
     return (

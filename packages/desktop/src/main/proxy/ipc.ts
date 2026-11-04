@@ -13,12 +13,14 @@ import { setWindowProvider } from './traffic'
 import { installTunTask, taskExists } from './tun'
 
 const DELAY_TEST_URL = 'https://www.gstatic.com/generate_204'
-/** system proxy (registry) and TUN (schtasks elevation) are windows-only machinery */
-const SUPPORTED = process.platform === 'win32'
+/** sys-proxy works on windows (registry) and macos (networksetup); TUN needs windows elevation */
+const SUPPORTED = process.platform === 'win32' || process.platform === 'darwin'
+const TUN_SUPPORTED = process.platform === 'win32'
 
 function publicState() {
   return {
     supported: SUPPORTED,
+    tunSupported: TUN_SUPPORTED,
     running: state.running,
     busy: state.busy,
     sysProxy: state.sysProxy,
@@ -93,7 +95,7 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
 
   ipcMain.handle('proxy:enable', async () => {
     await ready
-    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
+    if (!SUPPORTED) throw new Error('proxy is only supported on Windows and macOS')
     if (state.busy) return publicState()
     try {
       await proxyEnable()
@@ -120,8 +122,9 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
 
   ipcMain.handle('proxy:set-mode', async (_e, mode: 'sys' | 'tun') => {
     await ready
-    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
+    if (!SUPPORTED) throw new Error('proxy is only supported on Windows and macOS')
     if (mode !== 'sys' && mode !== 'tun') throw new Error('invalid mode')
+    if (mode === 'tun' && !TUN_SUPPORTED) throw new Error('TUN mode is only supported on Windows')
     const wasRunning = state.running
     if (wasRunning) await proxyDisable()
     config.mode = mode
@@ -131,7 +134,7 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   })
 
   ipcMain.handle('proxy:install-tun', async () => {
-    if (!SUPPORTED) throw new Error('proxy is only supported on Windows')
+    if (!TUN_SUPPORTED) throw new Error('TUN mode is only supported on Windows')
     await installTunTask()
     state.tunReady = await taskExists()
     return publicState()

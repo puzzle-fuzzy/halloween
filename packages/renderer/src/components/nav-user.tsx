@@ -16,6 +16,8 @@ import {
   IconDotsVertical,
   IconLogout,
   IconMoon,
+  IconRefresh,
+  IconRocket,
   IconSun,
   IconUserCircle,
 } from "@tabler/icons-react"
@@ -41,6 +43,36 @@ export function NavUser() {
   const { theme, setTheme } = useTheme()
   const cloudAuth = useCloudAuth()
   const { lang, setLang, t } = useI18n()
+  const updater = window.electron?.updater
+  const [updateLatest, setUpdateLatest] = React.useState<string | null>(null)
+  const [checking, setChecking] = React.useState(false)
+
+  React.useEffect(() => {
+    if (!updater) return
+    return updater.onUpdateAvailable((result) => setUpdateLatest(result.latest))
+  }, [updater])
+
+  const checkUpdates = async () => {
+    if (!updater || checking) return
+    setChecking(true)
+    try {
+      const result = await updater.check()
+      if (result.available === true && result.latest) {
+        setUpdateLatest(result.latest)
+        toast.info(t.menu.updateAvailable(result.latest), {
+          action: { label: t.menu.getUpdate, onClick: () => void updater.openReleases() },
+        })
+      } else if (result.available === false) {
+        toast.success(t.menu.upToDate(result.current))
+      } else {
+        toast.info(t.menu.updatesUnknown, {
+          action: { label: "GitHub", onClick: () => void updater.openReleases() },
+        })
+      }
+    } finally {
+      setChecking(false)
+    }
+  }
   const [profile, setProfile] = React.useState<Profile | null>(null)
 
   React.useEffect(() => {
@@ -144,6 +176,16 @@ export function NavUser() {
               <DropdownMenuRadioItem value="zh-CN">{t.menu.chinese}</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
+            {updateLatest && (
+              <DropdownMenuItem onClick={() => void updater?.openReleases()}>
+                <IconRocket />
+                {t.menu.updateAvailable(updateLatest)}
+              </DropdownMenuItem>
+            )}
+            <DropdownMenuItem disabled={checking} onClick={() => void checkUpdates()}>
+              <IconRefresh className={checking ? "animate-spin" : undefined} />
+              {checking ? t.menu.checkingUpdates : t.menu.checkUpdates}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => window.open(GITHUB_URL, "_blank")}>
               <IconBrandGithub />
               {t.menu.github}

@@ -53,6 +53,12 @@ export const zhCN: Dict = {
     dark: "深色",
     logOut: "退出登录",
     github: "GitHub",
+    checkUpdates: "检查更新",
+    checkingUpdates: "检查中…",
+    upToDate: (version: string) => `已是最新版本（${version}）`,
+    updateAvailable: (latest: string) => `新版本 ${latest} 可用`,
+    getUpdate: "前往 GitHub 下载",
+    updatesUnknown: "无法自动检查 —— 请查看 GitHub 发布页",
     notConfigured: "未配置",
   },
   window: {
@@ -152,9 +158,10 @@ export const zhCN: Dict = {
     empty: "还没有 RSS 内容 —— 订阅源在管理后台配置",
   },
   proxy: {
-    windowsOnlyTitle: "代理功能目前仅支持 Windows",
-    windowsOnlyDesc:
-      "代理内核（mihomo）、系统代理与 TUN 模式依赖 Windows 机制。macOS 支持以后可能加入 —— 你在 Windows 上配置的订阅和设置届时会原样保留。",
+    windowsOnlyTitle: "此平台暂不支持代理功能",
+    unsupportedDesc:
+      "代理内核（mihomo）、系统代理与 TUN 模式目前支持 Windows 和 macOS。你在这些平台配置的订阅和设置会跟随账号保留。",
+    tunWindowsOnly: "TUN 模式仅支持 Windows",
     toggleAria: "开关代理",
     on: "已开启",
     off: "已关闭",

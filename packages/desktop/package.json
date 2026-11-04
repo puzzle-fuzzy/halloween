@@ -8,8 +8,8 @@
     "dev": "bun scripts/dev.mjs",
     "build": "bun scripts/build.mjs",
     "dist": "electron-builder",
-    "dist:win": "node scripts/ensure-mihomo.mjs && electron-builder --win",
-    "dist:mac": "electron-builder --mac",
+    "dist:win": "node scripts/ensure-mihomo.mjs --platform win32 && electron-builder --win",
+    "dist:mac": "node scripts/ensure-mihomo.mjs && electron-builder --mac",
     "test": "bun test tests",
     "test:smoke": "node scripts/smoke.mjs",
     "typecheck": "tsc --noEmit"

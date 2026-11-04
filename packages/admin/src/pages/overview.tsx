@@ -57,7 +57,7 @@ export default function OverviewPage() {
         if (!controller.signal.aborted) setError(String(e))
       })
     return () => controller.abort()
-  }, [])
+  }, [attempt]) // manual retry token
 
   if (authed === false) return <Navigate to="/login" replace />
   if (error)

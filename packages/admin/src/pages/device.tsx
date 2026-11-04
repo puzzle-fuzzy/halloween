@@ -65,7 +65,7 @@ export default function DevicePage() {
       controller.abort()
       operation.current += 1
     }
-  }, [code, t.device.invalidCode])
+  }, [code, attempt, t.device.invalidCode]) // attempt: manual re-check token
 
   React.useEffect(() => {
     if (stage !== "ready") return

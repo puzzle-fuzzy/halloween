@@ -28,13 +28,16 @@ export function workRoot(): string {
   return path.join(app.getPath('userData'), 'proxy')
 }
 
+/** windows ships mihomo.exe, mac/linux ship a plain mihomo binary */
+const CORE_NAME = process.platform === 'win32' ? 'mihomo.exe' : 'mihomo'
+
 export function binaryPath(): string {
-  const dev = path.join(__dirname, '../../resources/mihomo.exe')
+  const dev = path.join(__dirname, '../../resources', CORE_NAME)
   if (fs.existsSync(dev)) return dev
-  const prod = path.join(process.resourcesPath ?? '', 'mihomo.exe')
+  const prod = path.join(process.resourcesPath ?? '', CORE_NAME)
   if (fs.existsSync(prod)) return prod
   throw new Error(
-    'mihomo.exe not found — run "bun scripts/ensure-mihomo.mjs" in packages/desktop (see resources/README.md)',
+    `${CORE_NAME} not found — run "node scripts/ensure-mihomo.mjs" in packages/desktop (see resources/README.md)`,
   )
 }
 

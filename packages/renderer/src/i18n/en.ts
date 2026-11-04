@@ -51,6 +51,12 @@ export const en = {
     dark: "Dark",
     logOut: "Log out",
     github: "GitHub",
+    checkUpdates: "Check for updates",
+    checkingUpdates: "Checking…",
+    upToDate: (version: string) => `You are on the latest version (${version})`,
+    updateAvailable: (latest: string) => `Version ${latest} is available`,
+    getUpdate: "Download from GitHub",
+    updatesUnknown: "Could not check automatically — see GitHub releases",
     notConfigured: "not configured",
   },
   window: {
@@ -150,9 +156,10 @@ export const en = {
     empty: "No RSS items yet — feeds are configured in the admin console",
   },
   proxy: {
-    windowsOnlyTitle: "Proxy is Windows-only for now",
-    windowsOnlyDesc:
-      "The proxy core (mihomo), system-proxy integration and TUN mode rely on Windows machinery. macOS support may come later — subscriptions and settings you configure on Windows will be there when it does.",
+    windowsOnlyTitle: "Proxy is not available on this platform",
+    unsupportedDesc:
+      "The proxy core (mihomo), system-proxy integration and TUN mode currently support Windows and macOS. Subscriptions and settings you configure there will follow your account.",
+    tunWindowsOnly: "TUN mode is only supported on Windows",
     toggleAria: "Toggle proxy",
     on: "On",
     off: "Off",

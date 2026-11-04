@@ -5,6 +5,7 @@ import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
 import { registerProxyHandlers, shutdownProxy } from './proxy/index'
 import { registerRssHandlers } from './rss'
+import { registerUpdaterHandlers } from './updater'
 
 const devServerUrl = process.env.VITE_DEV_SERVER_URL
 
@@ -109,6 +110,7 @@ void app.whenReady().then(() => {
   ipcMain.handle('window:is-maximized', () => mainWindow?.isMaximized() ?? false)
   registerCloudHandlers(() => mainWindow)
   registerOssHandlers(() => mainWindow)
+  registerUpdaterHandlers(() => mainWindow)
   registerRssHandlers()
   registerProxyHandlers(() => mainWindow)
   void createWindow()

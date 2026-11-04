@@ -57,6 +57,15 @@ contextBridge.exposeInMainWorld('electron', {
       return () => ipcRenderer.removeListener('cloud:progress', listener)
     },
   },
+  updater: {
+    check: () => ipcRenderer.invoke('update:check'),
+    openReleases: () => ipcRenderer.invoke('update:open-releases'),
+    onUpdateAvailable: (callback: (result: unknown) => void) => {
+      const listener = (_event: unknown, result: unknown) => callback(result)
+      ipcRenderer.on('update:available', listener)
+      return () => ipcRenderer.removeListener('update:available', listener)
+    },
+  },
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   oss: {
     accounts: () => ipcRenderer.invoke('oss:accounts'),

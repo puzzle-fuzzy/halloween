@@ -30,7 +30,86 @@ function reg(args: string[]): Promise<void> {
   )
 }
 
+/** macOS: proxies live per network service; apply to every enabled one */
+const MAC_BYPASS = [
+  'localhost',
+  '127.0.0.1',
+  '10.*',
+  '172.16.*',
+  '172.17.*',
+  '172.18.*',
+  '172.19.*',
+  '172.20.*',
+  '172.21.*',
+  '172.22.*',
+  '172.23.*',
+  '172.24.*',
+  '172.25.*',
+  '172.26.*',
+  '172.27.*',
+  '172.28.*',
+  '172.29.*',
+  '172.30.*',
+  '172.31.*',
+  '192.168.*',
+  '*.local',
+]
+
+function networksetup(args: string[]): Promise<string> {
+  return new Promise((resolve, reject) => {
+    execFile('networksetup', args, (err, stdout) =>
+      err ? reject(new Error(String(stdout || err.message).trim())) : resolve(String(stdout)),
+    )
+  })
+}
+
+async function macNetworkServices(): Promise<string[]> {
+  const out = await networksetup(['-listallnetworkservices'])
+  // first line is a header; disabled services are prefixed with an asterisk
+  return out
+    .split('\n')
+    .slice(1)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('*'))
+}
+
+async function setSystemProxyMac(enable: boolean): Promise<void> {
+  const services = await macNetworkServices()
+  for (const service of services) {
+    try {
+      if (enable) {
+        await networksetup(['-setwebproxy', service, '127.0.0.1', String(state.mixedPort)])
+        await networksetup(['-setsecurewebproxy', service, '127.0.0.1', String(state.mixedPort)])
+        await networksetup(['-setproxybypassdomains', service, ...MAC_BYPASS])
+      } else {
+        // ownership check per service — never switch off someone else's proxy
+        for (const kind of ['-getwebproxy', '-getsecurewebproxy']) {
+          const info = await networksetup([kind, service])
+          const server = /ProxyServer:\s*([^\s]+)/.exec(info)?.[1] ?? ''
+          if (!server || server === `127.0.0.1:${state.mixedPort}`) {
+            await networksetup([
+              kind === '-getwebproxy' ? '-setwebproxystate' : '-setsecurewebproxystate',
+              service,
+              'off',
+            ])
+          }
+        }
+      }
+    } catch (err) {
+      console.error(
+        `[proxy] networksetup ${service} failed:`,
+        err instanceof Error ? err.message : err,
+      )
+    }
+  }
+  state.sysProxy = enable
+}
+
 export async function setSystemProxy(enable: boolean): Promise<void> {
+  if (process.platform === 'darwin') {
+    await setSystemProxyMac(enable)
+    return
+  }
   if (process.platform !== 'win32') {
     state.sysProxy = enable
     return

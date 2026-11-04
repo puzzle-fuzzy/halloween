@@ -149,7 +149,7 @@ export async function createApplication(options: ApplicationOptions): Promise<Ho
     path.resolve(options.stateRoot),
   )
   const { dataRoot, stateRoot } = roots
-  const maxUploadBytes = options.maxUploadBytes ?? 100 * 1024 ** 3
+  const maxUploadBytes = options.maxUploadBytes ?? 10 * 1024 ** 3
   if (!Number.isSafeInteger(maxUploadBytes) || maxUploadBytes <= 0)
     throw new Error('MAX_UPLOAD_BYTES must be a positive safe integer')
   const files = new CloudFiles(dataRoot, stateRoot, maxUploadBytes)
@@ -687,7 +687,7 @@ const application = import.meta.main
       stateRoot: process.env.STATE_ROOT ?? './state',
       token: process.env.TOKEN ?? '',
       adminPassword: process.env.ADMIN_PASSWORD ?? '',
-      maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 100 * 1024 ** 3),
+      maxUploadBytes: Number(process.env.MAX_UPLOAD_BYTES ?? 10 * 1024 ** 3),
       publicOrigin: process.env.PUBLIC_ORIGIN,
       trustProxy: process.env.TRUST_PROXY === '1',
       secureCookies: process.env.SECURE_COOKIES ? process.env.SECURE_COOKIES === '1' : undefined,
@@ -696,7 +696,7 @@ const application = import.meta.main
   : undefined
 export default application
   ? {
-      maxRequestBodySize: Number(process.env.MAX_UPLOAD_BYTES ?? 100 * 1024 ** 3),
+      maxRequestBodySize: Number(process.env.MAX_UPLOAD_BYTES ?? 10 * 1024 ** 3),
       hostname: process.env.HOST ?? '127.0.0.1',
       port: Number(process.env.PORT ?? 3690),
       fetch: (
