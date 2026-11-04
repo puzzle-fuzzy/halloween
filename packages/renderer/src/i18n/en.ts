@@ -154,6 +154,7 @@ export const en = {
     all: "All",
     updated: (time: string) => `Updated ${time}`,
     empty: "No RSS items yet — feeds are configured in the admin console",
+    loadFailed: "Could not load RSS items. Check the connection or sign in again.",
   },
   proxy: {
     windowsOnlyTitle: "Proxy is not available on this platform",

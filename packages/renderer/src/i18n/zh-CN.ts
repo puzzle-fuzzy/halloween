@@ -156,6 +156,7 @@ export const zhCN: Dict = {
     all: "全部",
     updated: (time: string) => `更新于 ${time}`,
     empty: "还没有 RSS 内容 —— 订阅源在管理后台配置",
+    loadFailed: "无法加载 RSS 内容。请检查连接或重新登录。",
   },
   proxy: {
     windowsOnlyTitle: "此平台暂不支持代理功能",

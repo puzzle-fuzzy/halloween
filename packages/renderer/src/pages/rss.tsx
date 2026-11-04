@@ -24,7 +24,7 @@ function openLink(url: string) {
 }
 
 export default function RssPage() {
-  const { authed, login } = useCloudAuth()
+  const { authed, login, handleError } = useCloudAuth()
   const { t } = useI18n()
   const rss = window.electron?.rss
   const [signingIn, setSigningIn] = React.useState(false)
@@ -42,11 +42,12 @@ export default function RssPage() {
     try {
       setData(await rss.items(100))
     } catch (e) {
+      handleError(e)
       setError(String(e))
     } finally {
       setLoading(false)
     }
-  }, [rss])
+  }, [rss, handleError])
 
   React.useEffect(() => {
     if (authed) void load()
@@ -129,8 +130,9 @@ export default function RssPage() {
               {t.common.loading}
             </div>
           ) : error && items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center gap-3">
-              <p className="text-destructive text-sm">{error}</p>
+            <div className="flex h-full flex-col items-center justify-center gap-3 px-6">
+              <p className="text-destructive text-sm">{t.rss.loadFailed}</p>
+              <p className="text-muted-foreground max-w-lg break-words text-xs">{error}</p>
               <Button variant="outline" size="sm" onClick={() => void load()}>
                 {t.common.retry}
               </Button>
