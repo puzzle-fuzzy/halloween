@@ -1,6 +1,6 @@
-import { contextBridge, ipcRenderer, webUtils } from 'electron'
-import type { TrashPurgeInput, BackupStartInput } from '@halloween/contracts'
+import type { BackupStartInput, TrashPurgeInput } from '@halloween/contracts'
 import type { TransferProgress } from '@halloween/contracts/transfers'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 
 contextBridge.exposeInMainWorld('electron', {
   versions: process.versions,
@@ -20,11 +20,13 @@ contextBridge.exposeInMainWorld('electron', {
     login: () => ipcRenderer.invoke('cloud:login'),
     logout: () => ipcRenderer.invoke('cloud:logout'),
     isAuthed: () => ipcRenderer.invoke('cloud:is-authed'),
-    openAdmin: (page?: 'profile' | 'tokens' | 'oss-accounts') => ipcRenderer.invoke('cloud:open-admin', page),
+    openAdmin: (page?: 'profile' | 'tokens' | 'oss-accounts') =>
+      ipcRenderer.invoke('cloud:open-admin', page),
     transfers: () => ipcRenderer.invoke('cloud:transfers'),
     cancelTransfer: (id: string) => ipcRenderer.invoke('cloud:cancel-transfer', id),
     onAuthCode: (callback: (code: { userCode: string; expiresAt: number }) => void) => {
-      const listener = (_event: unknown, code: { userCode: string; expiresAt: number }) => callback(code)
+      const listener = (_event: unknown, code: { userCode: string; expiresAt: number }) =>
+        callback(code)
       ipcRenderer.on('cloud:auth-code', listener)
       return () => ipcRenderer.removeListener('cloud:auth-code', listener)
     },
@@ -34,10 +36,12 @@ contextBridge.exposeInMainWorld('electron', {
     rename: (from: string, to: string) => ipcRenderer.invoke('cloud:rename', from, to),
     remove: (paths: string[]) => ipcRenderer.invoke('cloud:delete', paths),
     listTrash: () => ipcRenderer.invoke('cloud:list-trash'),
-    restoreTrash: (id: string, destination?: string) => ipcRenderer.invoke('cloud:restore-trash', id, destination),
+    restoreTrash: (id: string, destination?: string) =>
+      ipcRenderer.invoke('cloud:restore-trash', id, destination),
     purgeTrash: (request: TrashPurgeInput) => ipcRenderer.invoke('cloud:purge-trash', request),
     backupStatus: () => ipcRenderer.invoke('cloud:backup-status'),
-    startBackupJob: (request: BackupStartInput) => ipcRenderer.invoke('cloud:start-backup-job', request),
+    startBackupJob: (request: BackupStartInput) =>
+      ipcRenderer.invoke('cloud:start-backup-job', request),
     backupJob: (id: string) => ipcRenderer.invoke('cloud:backup-job', id),
     search: (q: string) => ipcRenderer.invoke('cloud:search', q),
     fileUrl: (remotePath: string) => ipcRenderer.invoke('cloud:file-url', remotePath),
@@ -97,7 +101,7 @@ contextBridge.exposeInMainWorld('electron', {
         upTotal: number
         downTotal: number
         ts: number
-      }) => void
+      }) => void,
     ) => {
       const listener = (_event: unknown, sample: unknown) => callback(sample as never)
       ipcRenderer.on('proxy:traffic', listener)

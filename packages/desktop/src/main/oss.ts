@@ -1,13 +1,13 @@
-import { BrowserWindow, dialog, ipcMain } from 'electron'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
 import { Readable } from 'node:stream'
+import type { OssAccountInfo, OssBucketInfo, OssEntry } from '@halloween/contracts/oss'
+import { type BrowserWindow, dialog, ipcMain } from 'electron'
 import { getConfig } from './cloud'
 import { downloadFile } from './download'
 import { transfers } from './transfers'
 
-import type { OssAccountInfo, OssBucketInfo, OssEntry } from '@halloween/contracts/oss'
 export type { OssAccountInfo, OssBucketInfo, OssEntry }
 
 /** OSS API lives at <site-origin>/oss — NOT under the cloud serverUrl prefix */
@@ -32,11 +32,7 @@ async function ossApiJson<T>(pathname: string, init?: RequestInit): Promise<T> {
   return res.json() as Promise<T>
 }
 
-function countedStream(
-  filePath: string,
-  id: string,
-  total: number,
-): ReadableStream<Uint8Array> {
+function countedStream(filePath: string, id: string, total: number): ReadableStream<Uint8Array> {
   const nodeStream = fs.createReadStream(filePath)
   let loaded = 0
   const web = Readable.toWeb(nodeStream) as unknown as ReadableStream<Uint8Array>
@@ -47,7 +43,7 @@ function countedStream(
         transfers.progress(id, loaded, total)
         controller.enqueue(chunk)
       },
-    })
+    }),
   )
 }
 
@@ -56,7 +52,7 @@ async function uploadFiles(
   accountId: string,
   bucket: string,
   prefix: string,
-  localPaths: string[]
+  localPaths: string[],
 ): Promise<{ name: string; size: number }[]> {
   const uploaded: { name: string; size: number }[] = []
   for (const local of localPaths) {
@@ -90,44 +86,48 @@ async function uploadFiles(
 }
 
 export function registerOssHandlers(getWindow: () => BrowserWindow | null): void {
-  ipcMain.handle('oss:accounts', () => ossApiJson<{ accounts: OssAccountInfo[] }>('/oss/api/accounts'))
-
-  ipcMain.handle('oss:buckets', (_e, accountId: string) =>
-    ossApiJson<{ buckets: OssBucketInfo[] }>(`/oss/api/accounts/${accountId}/buckets`)
+  ipcMain.handle('oss:accounts', () =>
+    ossApiJson<{ accounts: OssAccountInfo[] }>('/oss/api/accounts'),
   )
 
-  ipcMain.handle('oss:objects', (_e, accountId: string, bucket: string, prefix: string, marker?: string) =>
-    ossApiJson<{ entries: OssEntry[]; truncated: boolean; nextMarker?: string }>(
-      `/oss/api/accounts/${accountId}/objects?bucket=${encodeURIComponent(bucket)}&prefix=${encodeURIComponent(prefix)}${marker ? `&marker=${encodeURIComponent(marker)}` : ''}`
-    )
+  ipcMain.handle('oss:buckets', (_e, accountId: string) =>
+    ossApiJson<{ buckets: OssBucketInfo[] }>(`/oss/api/accounts/${accountId}/buckets`),
+  )
+
+  ipcMain.handle(
+    'oss:objects',
+    (_e, accountId: string, bucket: string, prefix: string, marker?: string) =>
+      ossApiJson<{ entries: OssEntry[]; truncated: boolean; nextMarker?: string }>(
+        `/oss/api/accounts/${accountId}/objects?bucket=${encodeURIComponent(bucket)}&prefix=${encodeURIComponent(prefix)}${marker ? `&marker=${encodeURIComponent(marker)}` : ''}`,
+      ),
   )
 
   ipcMain.handle('oss:preview-url', (_e, accountId: string, bucket: string, key: string) =>
-    ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
+    ossApiJson<{ url: string }>(`/oss/api/accounts/${accountId}/sign`, {
       method: 'POST',
       body: JSON.stringify({ bucket, key, method: 'GET' }),
-    })
+    }),
   )
 
   ipcMain.handle('oss:mkdir', (_e, accountId: string, bucket: string, key: string) =>
     ossApiJson(`/oss/api/accounts/${accountId}/mkdir`, {
       method: 'POST',
       body: JSON.stringify({ bucket, key }),
-    })
+    }),
   )
 
   ipcMain.handle('oss:rename', (_e, accountId: string, bucket: string, from: string, to: string) =>
     ossApiJson(`/oss/api/accounts/${accountId}/rename`, {
       method: 'POST',
       body: JSON.stringify({ bucket, from, to }),
-    })
+    }),
   )
 
   ipcMain.handle('oss:delete', (_e, accountId: string, bucket: string, keys: string[]) =>
     ossApiJson(`/oss/api/accounts/${accountId}/delete`, {
       method: 'POST',
       body: JSON.stringify({ bucket, keys }),
-    })
+    }),
   )
 
   ipcMain.handle(
@@ -140,13 +140,13 @@ export function registerOssHandlers(getWindow: () => BrowserWindow | null): void
       })
       if (picked.canceled || picked.filePaths.length === 0) return []
       return uploadFiles(accountId, bucket, prefix, picked.filePaths)
-    }
+    },
   )
 
   ipcMain.handle(
     'oss:upload-files',
     (_e, accountId: string, bucket: string, prefix: string, localPaths: string[]) =>
-      uploadFiles(accountId, bucket, prefix, localPaths)
+      uploadFiles(accountId, bucket, prefix, localPaths),
   )
 
   ipcMain.handle(
@@ -155,18 +155,24 @@ export function registerOssHandlers(getWindow: () => BrowserWindow | null): void
       const id = transfers.start('download', name)
       const signal = transfers.signal(id)
       try {
-        const { url } = await ossApiJson<{ url: string }>('/oss/api/accounts/' + accountId + '/sign', {
+        const { url } = await ossApiJson<{ url: string }>(`/oss/api/accounts/${accountId}/sign`, {
           method: 'POST',
           body: JSON.stringify({ bucket, key, method: 'GET' }),
           signal,
         })
-        const target = await downloadFile({ url, name, targetDir, signal, onProgress: (loaded, total) => transfers.progress(id, loaded, total) })
+        const target = await downloadFile({
+          url,
+          name,
+          targetDir,
+          signal,
+          onProgress: (loaded, total) => transfers.progress(id, loaded, total),
+        })
         transfers.complete(id)
         return target
       } catch (error) {
         transfers.fail(id, error)
         throw error
       }
-    }
+    },
   )
 }

@@ -1,36 +1,47 @@
-import { createRequire } from 'node:module'
-import { spawn } from 'node:child_process'
-import fs from 'node:fs/promises'
-import os from 'node:os'
-import path from 'node:path'
-import { createApplication } from '../packages/server/src/index'
+import { spawn } from "node:child_process"
+import fs from "node:fs/promises"
+import { createRequire } from "node:module"
+import os from "node:os"
+import path from "node:path"
+import { createApplication } from "../packages/server/src/index"
 
-const root = path.resolve(import.meta.dir, '..')
-const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'halloween-admin-smoke-'))
-const adminPassword = 'isolated-smoke-password-123'
+const root = path.resolve(import.meta.dir, "..")
+const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "halloween-admin-smoke-"))
+const adminPassword = "isolated-smoke-password-123"
 const application = await createApplication({
-  dataRoot: path.join(temporary, 'files'), stateRoot: path.join(temporary, 'state'),
-  token: 'isolated-smoke-master-token-'.repeat(2), adminPassword, quiet: true,
+  dataRoot: path.join(temporary, "files"),
+  stateRoot: path.join(temporary, "state"),
+  token: "isolated-smoke-master-token-".repeat(2),
+  adminPassword,
+  quiet: true,
 })
-const server = Bun.serve({ hostname: '127.0.0.1', port: 0, fetch: async (request) => {
-  const response = await application.fetch(request)
-  // Exercise a route change while a real mutation response is still in flight.
-  if (new URL(request.url).pathname === '/admin/api/device/approve') await Bun.sleep(500)
-  return response
-} })
+const server = Bun.serve({
+  hostname: "127.0.0.1",
+  port: 0,
+  fetch: async (request) => {
+    const response = await application.fetch(request)
+    // Exercise a route change while a real mutation response is still in flight.
+    if (new URL(request.url).pathname === "/admin/api/device/approve") await Bun.sleep(500)
+    return response
+  },
+})
 const origin = `http://127.0.0.1:${server.port}`
 try {
   const response = await fetch(`${origin}/admin/api/login`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: adminPassword }),
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: adminPassword }),
   })
   if (!response.ok) throw new Error(`Fixture login failed: ${response.status}`)
-  const [cookieName, cookieValue] = response.headers.get('set-cookie')!.split(';')[0]!.split('=')
-  const entry = path.join(temporary, 'admin.cjs')
-  await fs.writeFile(entry, `
+  const [cookieName, cookieValue] = response.headers.get("set-cookie")!.split(";")[0]!.split("=")
+  const entry = path.join(temporary, "admin.cjs")
+  await fs.writeFile(
+    entry,
+    `
 const { app, BrowserWindow, session } = require('electron');
 const assert = require('node:assert/strict');
 const origin = ${JSON.stringify(origin)};
-app.setPath('userData', ${JSON.stringify(path.join(temporary, 'profile'))});
+app.setPath('userData', ${JSON.stringify(path.join(temporary, "profile"))});
 app.disableHardwareAcceleration();
 const api = async (pathname, body) => {
   const response = await fetch(origin + pathname, {method: 'POST', headers: {'Content-Type':'application/json'},body:JSON.stringify(body)});
@@ -96,14 +107,19 @@ app.whenReady().then(async()=>{
   app.exit(0);
 }).catch(error=>{console.error(error);app.exit(1)});
 setTimeout(()=>{console.error('Admin smoke timed out');app.exit(1)},45000);
-`)
-  const require = createRequire(path.join(root, 'packages/desktop/package.json'))
+`,
+  )
+  const require = createRequire(path.join(root, "packages/desktop/package.json"))
   const environment = { ...process.env }
   delete environment.ELECTRON_RUN_AS_NODE
   const result = await new Promise<number>((resolve, reject) => {
-    const child = spawn(require('electron'), [entry], { cwd: root, env: environment, stdio: 'inherit' })
-    child.once('error', reject)
-    child.once('exit', (code) => resolve(code ?? 1))
+    const child = spawn(require("electron"), [entry], {
+      cwd: root,
+      env: environment,
+      stdio: "inherit",
+    })
+    child.once("error", reject)
+    child.once("exit", (code) => resolve(code ?? 1))
   })
   if (result !== 0) throw new Error(`Admin UI smoke exited ${result}`)
 } finally {

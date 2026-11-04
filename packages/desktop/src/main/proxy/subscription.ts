@@ -1,6 +1,6 @@
 import { net as electronNet } from 'electron'
-import { parseSubscriptionBody, uniqueNames } from '../proxy-parse'
 import type { ClashProxy } from '../proxy-parse'
+import { parseSubscriptionBody, uniqueNames } from '../proxy-parse'
 import { config, saveConfig } from './config'
 
 const FETCH_TIMEOUT_MS = 15_000
@@ -59,7 +59,7 @@ export async function collectProxies(): Promise<ClashProxy[]> {
       failures++
       console.error(
         `[proxy] subscription "${sub.name}" failed:`,
-        err instanceof Error ? err.message : err
+        err instanceof Error ? err.message : err,
       )
       const cached = config.subNodes[sub.id]
       if (cached?.length) merged.push(...(cached as ClashProxy[]))
@@ -69,7 +69,7 @@ export async function collectProxies(): Promise<ClashProxy[]> {
     throw new Error(
       config.subscriptions.length === 0
         ? 'no subscription configured'
-        : 'all subscriptions failed to fetch'
+        : 'all subscriptions failed to fetch',
     )
   }
   if (failures > 0) console.warn(`[proxy] ${failures} subscription(s) served from cache`)

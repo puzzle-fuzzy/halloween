@@ -14,7 +14,7 @@ export interface OssBucketInfo {
 export interface OssEntry {
   name: string
   key: string
-  type: 'dir' | 'file'
+  type: "dir" | "file"
   size: number
   mtime: number
 }

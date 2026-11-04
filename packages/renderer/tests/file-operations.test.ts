@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test"
-import { createRequestTracker, fileOperationError, mergeEntries, mergeTransferSnapshots, selectVisibleKeys } from "../src/lib/file-operations"
+import {
+  createRequestTracker,
+  fileOperationError,
+  mergeEntries,
+  mergeTransferSnapshots,
+  selectVisibleKeys,
+} from "../src/lib/file-operations"
 
 describe("file browser state", () => {
   test("direct OSS conflict responses explain that existing data was not overwritten", () => {
@@ -24,12 +30,20 @@ describe("file browser state", () => {
   })
 
   test("pagination deduplicates directory prefixes across pages", () => {
-    expect(mergeEntries([{ key: "photos/" }], [{ key: "photos/" }, { key: "video.mp4" }]))
-      .toEqual([{ key: "photos/" }, { key: "video.mp4" }])
+    expect(mergeEntries([{ key: "photos/" }], [{ key: "photos/" }, { key: "video.mp4" }])).toEqual([
+      { key: "photos/" },
+      { key: "video.mp4" },
+    ])
   })
 
   test("a stale progress snapshot cannot hide a failure event", () => {
-    const base = { id: "upload-1", kind: "upload" as const, name: "photo.jpg", loaded: 50, total: 100 }
+    const base = {
+      id: "upload-1",
+      kind: "upload" as const,
+      name: "photo.jpg",
+      loaded: 50,
+      total: 100,
+    }
     const items = mergeTransferSnapshots(
       [{ ...base, status: "running" }],
       [{ ...base, status: "failed", error: "Connection interrupted" }],

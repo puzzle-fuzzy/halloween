@@ -1,11 +1,14 @@
-import * as React from "react"
-
 import { Button } from "@halloween/ui/button"
+import * as React from "react"
 
 import { useI18n } from "@/i18n"
 import { fileKind } from "@/lib/format"
-import { capturePlaybackPosition, createPreviewRefreshGuard, playbackTime } from "@/lib/preview-state"
 import type { PlaybackPosition } from "@/lib/preview-state"
+import {
+  capturePlaybackPosition,
+  createPreviewRefreshGuard,
+  playbackTime,
+} from "@/lib/preview-state"
 
 interface MediaPreviewProps {
   name: string
@@ -15,7 +18,13 @@ interface MediaPreviewProps {
   onRefreshError: (error: unknown) => void
 }
 
-export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshError }: MediaPreviewProps) {
+export function MediaPreview({
+  name,
+  url,
+  refreshUrl,
+  onUrlChange,
+  onRefreshError,
+}: MediaPreviewProps) {
   const { t } = useI18n()
   const [currentUrl, setCurrentUrl] = React.useState(url)
   const [generation, setGeneration] = React.useState(0)
@@ -31,7 +40,9 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
 
   React.useEffect(() => {
     mounted.current = true
-    return () => { mounted.current = false }
+    return () => {
+      mounted.current = false
+    }
   }, [])
 
   const refresh = async (automatic: boolean) => {
@@ -41,7 +52,10 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
     inFlight.current = true
     setRefreshing(true)
     const previous = media.current
-      ? capturePlaybackPosition({ currentTime: media.current.error ? playback.current.time : media.current.currentTime, paused: playback.current.paused })
+      ? capturePlaybackPosition({
+          currentTime: media.current.error ? playback.current.time : media.current.currentTime,
+          paused: playback.current.paused,
+        })
       : null
     try {
       const nextUrl = await refreshUrl()
@@ -74,9 +88,10 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
       playback.current = previous
       restore.current = null
       if (previous.paused) element.pause()
-      else void element.play().catch(() => {
-        if (mounted.current) setError(t.preview.resume)
-      })
+      else
+        void element.play().catch(() => {
+          if (mounted.current) setError(t.preview.resume)
+        })
     } catch {
       // Some formats do not allow seeking until canplay; retry there once available.
     }
@@ -91,23 +106,61 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
     onSeeking: () => {
       if (media.current) playback.current.time = media.current.currentTime
     },
-    onPlay: () => { playback.current.paused = false },
+    onPlay: () => {
+      playback.current.paused = false
+    },
     onPause: () => {
       if (media.current && !media.current.error) playback.current.paused = true
     },
   }
 
-  return <div className="flex min-w-0 flex-col gap-3">
-    {kind === "image" ? (
-      <img key={generation} src={currentUrl} alt={name} onError={failed} onLoad={() => setError("")} className="max-h-[65vh] w-full object-contain" />
-    ) : kind === "video" ? (
-      <video key={generation} ref={(element) => { media.current = element }} src={currentUrl} controls {...mediaEvents} className="max-h-[65vh] w-full" />
-    ) : (
-      <audio key={generation} ref={(element) => { media.current = element }} src={currentUrl} controls {...mediaEvents} className="my-8 w-full" />
-    )}
-    <div className="flex flex-wrap items-center justify-end gap-3">
-      <p aria-live="polite" className="text-muted-foreground flex-1 text-sm">{refreshing ? "Refreshing preview…" : error}</p>
-      <Button variant="outline" size="sm" disabled={refreshing} onClick={() => void refresh(false)}>{t.preview.refreshPreview}</Button>
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      {kind === "image" ? (
+        <img
+          key={generation}
+          src={currentUrl}
+          alt={name}
+          onError={failed}
+          onLoad={() => setError("")}
+          className="max-h-[65vh] w-full object-contain"
+        />
+      ) : kind === "video" ? (
+        <video
+          key={generation}
+          ref={(element) => {
+            media.current = element
+          }}
+          src={currentUrl}
+          controls
+          {...mediaEvents}
+          className="max-h-[65vh] w-full"
+        />
+      ) : (
+        <audio
+          key={generation}
+          ref={(element) => {
+            media.current = element
+          }}
+          src={currentUrl}
+          controls
+          {...mediaEvents}
+          className="my-8 w-full"
+        />
+      )}
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <p aria-live="polite" className="text-muted-foreground flex-1 text-sm">
+          {refreshing ? "Refreshing preview…" : error}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={refreshing}
+          onClick={() => void refresh(false)}
+        >
+          {t.preview.refreshPreview}
+        </Button>
+      </div>
     </div>
-  </div>
+  )
 }

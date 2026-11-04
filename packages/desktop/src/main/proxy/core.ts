@@ -1,15 +1,15 @@
-import { spawn, execFileSync } from 'node:child_process'
+import { execFileSync, spawn } from 'node:child_process'
 import fsp from 'node:fs/promises'
 import net from 'node:net'
 import path from 'node:path'
 import { stringify as stringifyYaml } from 'yaml'
 import type { ClashProxy } from '../proxy-parse'
 import { binaryPath, config, workRoot } from './config'
-import { collectProxies } from './subscription'
-import { endTunTask, runTunTask, taskExists, TASK_NAME } from './tun'
-import { setSystemProxy, WININET_KEY, PS_REFRESH } from './sysproxy'
-import { startTrafficSampler, stopTrafficSampler } from './traffic'
 import { state } from './state'
+import { collectProxies } from './subscription'
+import { PS_REFRESH, setSystemProxy, WININET_KEY } from './sysproxy'
+import { startTrafficSampler, stopTrafficSampler } from './traffic'
+import { endTunTask, runTunTask, TASK_NAME, taskExists } from './tun'
 
 /** proxy group name everything is routed through */
 export const GROUP = '🚀 Node'
@@ -162,7 +162,7 @@ export async function startCore(): Promise<void> {
       core.on('error', (err) => {
         // spawn failures (EACCES, file lock) surface as 'error', never 'exit';
         // without a listener EventEmitter rethrows and crashes the main process
-        coreLog = (coreLog + `\n${err.message}`).slice(-2000)
+        coreLog = `${coreLog}\n${err.message}`.slice(-2000)
         core = null
         if (!stopping && state.running) {
           state.running = false
@@ -239,7 +239,15 @@ export function shutdownProxy(): void {
     if (state.sysProxy) {
       try {
         execFileSync('reg', [
-          'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '0', '/f',
+          'add',
+          WININET_KEY,
+          '/v',
+          'ProxyEnable',
+          '/t',
+          'REG_DWORD',
+          '/d',
+          '0',
+          '/f',
         ])
         execFileSync('powershell', ['-NoProfile', '-Command', PS_REFRESH])
       } catch {

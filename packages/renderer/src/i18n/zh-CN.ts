@@ -1,4 +1,4 @@
-import type { Dict } from './en'
+import type { Dict } from "./en"
 
 /** compile-time enforced to mirror en.ts key-for-key */
 export const zhCN: Dict = {
@@ -108,9 +108,11 @@ export const zhCN: Dict = {
     viewTrash: "查看回收站",
     noResults: "无结果",
     clear: "清除",
-    moveToTrash: (n: number, folders: boolean) => `将 ${n} 项移入回收站？${folders ? "文件夹内容会一并移动。" : ""} 你可以从回收站恢复它们。`,
+    moveToTrash: (n: number, folders: boolean) =>
+      `将 ${n} 项移入回收站？${folders ? "文件夹内容会一并移动。" : ""} 你可以从回收站恢复它们。`,
     movedToTrash: "已将所选项目移入回收站",
-    partialMoveNotice: (detail: string) => `部分项目可能已移入回收站。请检查当前列表和回收站后再重试。${detail}`,
+    partialMoveNotice: (detail: string) =>
+      `部分项目可能已移入回收站。请检查当前列表和回收站后再重试。${detail}`,
     previewGone: "预览已不可用",
   },
   oss: {
@@ -129,7 +131,8 @@ export const zhCN: Dict = {
     modified: "修改时间",
     uploadComplete: "上传完成",
     savedTo: (dir: string) => `已保存到 ${dir}`,
-    deleteConfirm: (n: number, folders: boolean) => `永久删除 ${n} 项？${folders ? "所选文件夹内的所有文件和子文件夹都会被删除。" : ""} 此操作不可撤销。`,
+    deleteConfirm: (n: number, folders: boolean) =>
+      `永久删除 ${n} 项？${folders ? "所选文件夹内的所有文件和子文件夹都会被删除。" : ""} 此操作不可撤销。`,
     transferCancelled: "传输已取消",
     nameNoSeparators: "请输入不含路径分隔符的名称。",
     loadMore: "加载更多",
@@ -231,7 +234,8 @@ export const zhCN: Dict = {
     applyingChanges: "正在应用更改…",
     restoredN: (n: number) => `已恢复 ${n} 项`,
     restoredTo: (path: string) => `已恢复到 ${path}`,
-    invalidPath: "请输入完整的云盘路径，不含隐藏名称或点号分段，例如 /photos/holiday-restored.jpg。",
+    invalidPath:
+      "请输入完整的云盘路径，不含隐藏名称或点号分段，例如 /photos/holiday-restored.jpg。",
     pathExists: "该路径已存在。请换一个目标路径。",
     choosePathTitle: "换个恢复路径",
     choosePathDesc: "原路径已存在。现有文件不会被覆盖。",
@@ -246,7 +250,8 @@ export const zhCN: Dict = {
     typePhrase: (phrase: string) => `输入 ${phrase} 确认`,
     deletePermanently: "永久删除",
     purgedN: (n: number) => `已永久删除 ${n} 项`,
-    purgePartial: (n: number) => `已永久删除 ${n} 项。部分项目未能删除。请查看当前列表，对剩余项目重新发起确认删除。`,
+    purgePartial: (n: number) =>
+      `已永久删除 ${n} 项。部分项目未能删除。请查看当前列表，对剩余项目重新发起确认删除。`,
     purgeSomeFailed: "部分项目无法永久删除",
     purgeUncertain:
       "删除结果无法确认。部分项目可能已被永久删除。请查看当前列表，对剩余项目重新发起确认删除。",
@@ -265,7 +270,8 @@ export const zhCN: Dict = {
     readyDesc: "服务器已就绪，可使用专用备份仓库。",
     needsAttention: "备份服务需要在服务器上处理。",
     engine: (version: string) => `备份引擎：${version}`,
-    configureHint: "请在服务器上配置专用备份仓库、密码文件并安装 restic，然后刷新状态。凭据只保留在服务器上。",
+    configureHint:
+      "请在服务器上配置专用备份仓库、密码文件并安装 restic，然后刷新状态。凭据只保留在服务器上。",
     checkEngineHint: "请检查服务器上的备份引擎与仓库配置，然后刷新状态。",
     lastBackup: "上次成功备份",
     lastCheck: "上次完整性校验",
@@ -304,7 +310,8 @@ export const zhCN: Dict = {
     livePaused: (detail: string) => `实时刷新已暂停。任务可能仍在服务器上运行。${detail}`,
     progressAria: "备份任务进度",
     working: "处理中…",
-    filesUnit: (done: number, total?: number) => `${done}${total !== undefined ? ` / ${total}` : ""} 个文件`,
+    filesUnit: (done: number, total?: number) =>
+      `${done}${total !== undefined ? ` / ${total}` : ""} 个文件`,
     startedAt: (time: string) => `开始于 ${time}`,
     verifyTitle: "验证恢复",
     verifyDesc: "将所选快照恢复到隔离工作区，并与保存的清单比对文件。",

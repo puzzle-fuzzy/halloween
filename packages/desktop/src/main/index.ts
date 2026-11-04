@@ -1,12 +1,12 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
 import { registerProxyHandlers, shutdownProxy } from './proxy/index'
 import { registerRssHandlers } from './rss'
 
-const devServerUrl = process.env['VITE_DEV_SERVER_URL']
+const devServerUrl = process.env.VITE_DEV_SERVER_URL
 
 let mainWindow: BrowserWindow | null = null
 
@@ -49,8 +49,7 @@ async function createWindow(): Promise<void> {
     if (mainWindow === win) mainWindow = null
   })
 
-  const sendMaximizeState = () =>
-    win.webContents.send('window:maximize-changed', win.isMaximized())
+  const sendMaximizeState = () => win.webContents.send('window:maximize-changed', win.isMaximized())
   win.on('maximize', sendMaximizeState)
   win.on('unmaximize', sendMaximizeState)
 
@@ -62,7 +61,7 @@ async function createWindow(): Promise<void> {
   win.webContents.on('did-finish-load', () => console.log('[main] page loaded'))
 
   win.webContents.on('render-process-gone', (_event, details) =>
-    console.error(`[main] renderer gone: ${details.reason}`)
+    console.error(`[main] renderer gone: ${details.reason}`),
   )
 
   win.webContents.setWindowOpenHandler(({ url }) => {
@@ -70,11 +69,14 @@ async function createWindow(): Promise<void> {
     return { action: 'deny' }
   })
 
-  const entryUrl = devServerUrl || pathToFileURL(path.join(__dirname, '../renderer/index.html')).toString()
+  const entryUrl =
+    devServerUrl || pathToFileURL(path.join(__dirname, '../renderer/index.html')).toString()
   const isAppUrl = (url: string): boolean => {
     const candidate = new URL(url)
     const entry = new URL(entryUrl)
-    return devServerUrl ? candidate.origin === entry.origin : candidate.protocol === 'file:' && candidate.pathname === entry.pathname
+    return devServerUrl
+      ? candidate.origin === entry.origin
+      : candidate.protocol === 'file:' && candidate.pathname === entry.pathname
   }
   win.webContents.on('will-navigate', (event, url) => {
     if (!isAppUrl(url)) event.preventDefault()
@@ -84,9 +86,8 @@ async function createWindow(): Promise<void> {
   })
   win.webContents.on('will-attach-webview', (event) => event.preventDefault())
 
-  win.webContents.on(
-    'did-fail-load',
-    (_event, code, description, url) => console.error(`[main] load failed: ${code} ${description} ${url}`)
+  win.webContents.on('did-fail-load', (_event, code, description, url) =>
+    console.error(`[main] load failed: ${code} ${description} ${url}`),
   )
 
   if (devServerUrl) {
@@ -125,6 +126,3 @@ app.on('window-all-closed', () => {
 app.on('will-quit', () => {
   shutdownProxy()
 })
-
-
-

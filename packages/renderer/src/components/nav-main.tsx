@@ -1,5 +1,3 @@
-import { Link, useLocation } from "react-router-dom"
-
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -7,6 +5,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@halloween/ui/sidebar"
+import { Link, useLocation } from "react-router-dom"
 
 export interface NavMainItem {
   title: string

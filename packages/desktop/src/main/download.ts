@@ -1,7 +1,7 @@
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import fsp from 'node:fs/promises'
 import path from 'node:path'
-import { randomUUID } from 'node:crypto'
 import { Readable, Transform } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
@@ -18,10 +18,21 @@ interface DownloadOptions {
 }
 
 /** Complete the temporary file before publishing it under a unique final name. */
-export async function downloadFile({ url, headers, targetDir, name, onProgress, request = fetch, signal, publication = fsp }: DownloadOptions): Promise<string> {
-  if (!name || name === '.' || name === '..' || /[/\\\0]/.test(name)) throw new Error('Invalid download filename')
+export async function downloadFile({
+  url,
+  headers,
+  targetDir,
+  name,
+  onProgress,
+  request = fetch,
+  signal,
+  publication = fsp,
+}: DownloadOptions): Promise<string> {
+  if (!name || name === '.' || name === '..' || /[/\\\0]/.test(name))
+    throw new Error('Invalid download filename')
   const response = await request(url, { headers, signal })
-  if (!response.ok || !response.body) throw new Error(`Download failed for ${name}: HTTP ${response.status}`)
+  if (!response.ok || !response.body)
+    throw new Error(`Download failed for ${name}: HTTP ${response.status}`)
   const temporary = path.join(targetDir, `.halloween-${randomUUID()}.part`)
   const total = Number(response.headers.get('content-length') ?? 0)
   let loaded = 0
@@ -39,7 +50,8 @@ export async function downloadFile({ url, headers, targetDir, name, onProgress, 
       fs.createWriteStream(temporary, { flags: 'wx', mode: 0o600 }),
       { signal },
     )
-    if (total > 0 && !response.headers.get('content-encoding') && loaded !== total) throw new Error(`Download incomplete: expected ${total} bytes, received ${loaded}`)
+    if (total > 0 && !response.headers.get('content-encoding') && loaded !== total)
+      throw new Error(`Download incomplete: expected ${total} bytes, received ${loaded}`)
     const ext = path.extname(name)
     const base = path.basename(name, ext)
     for (let index = 0; ; index++) {
@@ -51,7 +63,12 @@ export async function downloadFile({ url, headers, targetDir, name, onProgress, 
           await publication.link(temporary, target)
           ownsTarget = true
         } catch (error) {
-          if (!['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'EXDEV'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error
+          if (
+            !['EPERM', 'ENOTSUP', 'EOPNOTSUPP', 'EXDEV'].includes(
+              (error as NodeJS.ErrnoException).code ?? '',
+            )
+          )
+            throw error
           // Reserve the name exclusively so any failed copy can safely remove its own partial output.
           const reservation = await fsp.open(target, 'wx', 0o600)
           ownsTarget = true

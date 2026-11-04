@@ -1,6 +1,16 @@
-import * as React from "react"
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import prettyBytes from "pretty-bytes"
+import { Badge } from "@halloween/ui/badge"
+import { Button } from "@halloween/ui/button"
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@halloween/ui/card"
+import { Input } from "@halloween/ui/input"
+import { Separator } from "@halloween/ui/separator"
 import {
   IconArrowDown,
   IconArrowUp,
@@ -13,31 +23,19 @@ import {
   IconShieldLock,
   IconTrash,
 } from "@tabler/icons-react"
+import prettyBytes from "pretty-bytes"
+import * as React from "react"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { toast } from "sonner"
-
-import { useI18n } from "@/i18n"
-
-import { Badge } from "@halloween/ui/badge"
-import { Button } from "@halloween/ui/button"
 import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@halloween/ui/card"
-import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-  type ChartConfig,
 } from "@/components/ui/chart"
-import { Input } from "@halloween/ui/input"
-import { Separator } from "@halloween/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
+import { useI18n } from "@/i18n"
 import { formatSpeed, formatTime } from "@/lib/format"
 import type { ProxyNodes, ProxyState } from "@/types/global"
 
@@ -72,7 +70,10 @@ export default function ProxyPage() {
       setNodes(null)
       return
     }
-    void proxy?.nodes().then(setNodes).catch(() => setNodes(null))
+    void proxy
+      ?.nodes()
+      .then(setNodes)
+      .catch(() => setNodes(null))
   }, [proxy, state?.running])
 
   React.useEffect(() => {
@@ -90,7 +91,8 @@ export default function ProxyPage() {
     if (!proxy || state?.busy) return
     const next = on ? await proxy.enable() : await proxy.disable()
     setState(next)
-    if (on && next.lastError) toast.error(t.proxy.proxyFailedTitle, { description: next.lastError.slice(0, 300) })
+    if (on && next.lastError)
+      toast.error(t.proxy.proxyFailedTitle, { description: next.lastError.slice(0, 300) })
   }
 
   const setMode = async (mode: "sys" | "tun") => {
@@ -173,9 +175,7 @@ export default function ProxyPage() {
               <IconShieldLock className="size-5" />
               {t.proxy.windowsOnlyTitle}
             </CardTitle>
-            <CardDescription>
-              {t.proxy.windowsOnlyDesc}
-            </CardDescription>
+            <CardDescription>{t.proxy.windowsOnlyDesc}</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -238,9 +238,7 @@ export default function ProxyPage() {
       {tun && !state.tunReady && (
         <div className="bg-muted/50 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm">
           <IconShieldLock className="text-muted-foreground size-4 shrink-0" />
-          <span className="text-muted-foreground min-w-0 flex-1">
-            {t.proxy.tunNeedsInstall}
-          </span>
+          <span className="text-muted-foreground min-w-0 flex-1">{t.proxy.tunNeedsInstall}</span>
           <Button size="sm" onClick={() => void installTun()} disabled={installing}>
             <IconShieldLock />
             {installing ? t.proxy.installing : t.proxy.installService}
@@ -276,7 +274,11 @@ export default function ProxyPage() {
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                {tun && !state.tunReady ? t.proxy.installRequired : active ? t.proxy.activeBadge : t.proxy.idleBadge}
+                {tun && !state.tunReady
+                  ? t.proxy.installRequired
+                  : active
+                    ? t.proxy.activeBadge
+                    : t.proxy.idleBadge}
               </Badge>
             </CardAction>
           </CardHeader>
@@ -348,7 +350,11 @@ export default function ProxyPage() {
                 tickMargin={8}
                 minTickGap={40}
                 tickFormatter={(v) =>
-                  new Date(v).toLocaleTimeString([], { hour12: false, minute: "2-digit", second: "2-digit" })
+                  new Date(v).toLocaleTimeString([], {
+                    hour12: false,
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })
                 }
               />
               <YAxis
@@ -376,8 +382,20 @@ export default function ProxyPage() {
                   />
                 }
               />
-              <Area dataKey="down" type="natural" fill="url(#fillDown)" stroke="var(--color-down)" strokeWidth={2} />
-              <Area dataKey="up" type="natural" fill="url(#fillUp)" stroke="var(--color-up)" strokeWidth={2} />
+              <Area
+                dataKey="down"
+                type="natural"
+                fill="url(#fillDown)"
+                stroke="var(--color-down)"
+                strokeWidth={2}
+              />
+              <Area
+                dataKey="up"
+                type="natural"
+                fill="url(#fillUp)"
+                stroke="var(--color-up)"
+                strokeWidth={2}
+              />
             </AreaChart>
           </ChartContainer>
         </CardContent>
@@ -398,7 +416,12 @@ export default function ProxyPage() {
                 if (e.key === "Enter") void add()
               }}
             />
-            <Button size="sm" className="shrink-0" onClick={() => void add()} disabled={!url.trim() || adding}>
+            <Button
+              size="sm"
+              className="shrink-0"
+              onClick={() => void add()}
+              disabled={!url.trim() || adding}
+            >
               <IconPlus />
               {adding ? t.proxy.adding : t.proxy.add}
             </Button>
@@ -410,7 +433,8 @@ export default function ProxyPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{sub.name}</p>
                     <p className="text-muted-foreground truncate text-xs">
-                      {t.proxy.subNodes(sub.nodeCount)} · {sub.updatedAt ? formatTime(sub.updatedAt) : "—"}
+                      {t.proxy.subNodes(sub.nodeCount)} ·{" "}
+                      {sub.updatedAt ? formatTime(sub.updatedAt) : "—"}
                     </p>
                   </div>
                   <Button
@@ -421,7 +445,9 @@ export default function ProxyPage() {
                     disabled={updating === sub.id || state.busy}
                     onClick={() => void updateSub(sub.id)}
                   >
-                    <IconRefresh className={`size-4 ${updating === sub.id ? "animate-spin" : ""}`} />
+                    <IconRefresh
+                      className={`size-4 ${updating === sub.id ? "animate-spin" : ""}`}
+                    />
                   </Button>
                   <Button
                     variant="ghost"
@@ -437,9 +463,7 @@ export default function ProxyPage() {
               </React.Fragment>
             ))}
             {state.subscriptions.length === 0 && (
-              <p className="text-muted-foreground p-3 text-sm">
-                {t.proxy.noSubs}
-              </p>
+              <p className="text-muted-foreground p-3 text-sm">{t.proxy.noSubs}</p>
             )}
           </div>
         </div>

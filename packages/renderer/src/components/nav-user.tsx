@@ -1,25 +1,3 @@
-import * as React from "react"
-import {
-  IconBrandGithub,
-  IconDotsVertical,
-  IconLogout,
-  IconMoon,
-  IconDevices,
-  IconSun,
-  IconUserCircle,
-} from "@tabler/icons-react"
-import { useTheme } from "next-themes"
-import { toast } from "sonner"
-
-import { useCloudAuth } from "@/components/cloud/auth"
-import { useI18n } from "@/i18n"
-import type { Lang } from "@/i18n"
-
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,12 +9,24 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@halloween/ui/dropdown-menu"
+import { SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar } from "@halloween/ui/sidebar"
 import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@halloween/ui/sidebar"
+  IconBrandGithub,
+  IconDevices,
+  IconDotsVertical,
+  IconLogout,
+  IconMoon,
+  IconSun,
+  IconUserCircle,
+} from "@tabler/icons-react"
+import { useTheme } from "next-themes"
+import * as React from "react"
+import { toast } from "sonner"
+import { useCloudAuth } from "@/components/cloud/auth"
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import type { Lang } from "@/i18n"
+import { useI18n } from "@/i18n"
 
 const GITHUB_URL = "https://github.com/puzzle-fuzzy/halloween"
 
@@ -61,9 +51,15 @@ export function NavUser() {
     }
     window.electron?.cloud
       ?.profile()
-      .then((res) => { if (active) setProfile(res.profile) })
-      .catch(() => { if (active) setProfile(null) })
-    return () => { active = false }
+      .then((res) => {
+        if (active) setProfile(res.profile)
+      })
+      .catch(() => {
+        if (active) setProfile(null)
+      })
+    return () => {
+      active = false
+    }
   }, [cloudAuth.authed])
 
   const name = profile?.name || "Halloween"
@@ -85,9 +81,7 @@ export function NavUser() {
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{name}</span>
-                <span className="truncate text-xs text-muted-foreground">
-                  {email}
-                </span>
+                <span className="truncate text-xs text-muted-foreground">{email}</span>
               </div>
               <IconDotsVertical className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -106,19 +100,29 @@ export function NavUser() {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-medium">{name}</span>
-                  <span className="truncate text-xs text-muted-foreground">
-                    {email}
-                  </span>
+                  <span className="truncate text-xs text-muted-foreground">{email}</span>
                 </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("profile").catch((e) => toast.error(String(e)))}>
+              <DropdownMenuItem
+                onClick={() =>
+                  void window.electron?.cloud
+                    ?.openAdmin("profile")
+                    .catch((e) => toast.error(String(e)))
+                }
+              >
                 <IconUserCircle />
                 {t.menu.manageProfile}
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("tokens").catch((e) => toast.error(String(e)))}>
+              <DropdownMenuItem
+                onClick={() =>
+                  void window.electron?.cloud
+                    ?.openAdmin("tokens")
+                    .catch((e) => toast.error(String(e)))
+                }
+              >
                 <IconDevices />
                 {t.menu.authorizedDevices}
               </DropdownMenuItem>
@@ -146,7 +150,10 @@ export function NavUser() {
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                void cloudAuth.logout().then(() => toast.success(t.common.signedOut)).catch((e) => toast.error(String(e)))
+                void cloudAuth
+                  .logout()
+                  .then(() => toast.success(t.common.signedOut))
+                  .catch((e) => toast.error(String(e)))
               }}
               disabled={!cloudAuth.authed}
             >

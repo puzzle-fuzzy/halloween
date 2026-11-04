@@ -1,18 +1,10 @@
-import * as React from "react"
-import { format } from "date-fns"
-import { IconTrash } from "@tabler/icons-react"
-
 import { Button } from "@halloween/ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@halloween/ui/table"
-import { adminApi, checkSession } from "@/lib/api"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@halloween/ui/table"
+import { IconTrash } from "@tabler/icons-react"
+import { format } from "date-fns"
+import * as React from "react"
 import { useI18n } from "@/i18n"
+import { adminApi, checkSession } from "@/lib/api"
 
 interface Device {
   id: string
@@ -23,17 +15,17 @@ interface Device {
 export default function TokensPage() {
   const { t } = useI18n()
   const [devices, setDevices] = React.useState<Device[] | null>(null)
-  const [error, setError] = React.useState('')
+  const [error, setError] = React.useState("")
   const [busy, setBusy] = React.useState(false)
 
   const load = React.useCallback(async () => {
     try {
-      setError('')
+      setError("")
       if (!(await checkSession())) {
-        window.location.hash = '#/login'
+        window.location.hash = "#/login"
         return
       }
-      const res = await adminApi<{ devices: Device[] }>('/devices')
+      const res = await adminApi<{ devices: Device[] }>("/devices")
       setDevices(res.devices)
     } catch (e) {
       setError(String(e))
@@ -49,8 +41,8 @@ export default function TokensPage() {
     if (!window.confirm(t.tokens.revokeConfirm(device.name))) return
     setBusy(true)
     try {
-      await adminApi('/devices/revoke', {
-        method: 'POST',
+      await adminApi("/devices/revoke", {
+        method: "POST",
         body: JSON.stringify({ id: device.id }),
       })
       await load()
@@ -64,15 +56,17 @@ export default function TokensPage() {
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex items-center">
-        <p className="text-muted-foreground text-sm">
-          {t.tokens.description}
-        </p>
+        <p className="text-muted-foreground text-sm">{t.tokens.description}</p>
         <Button variant="outline" size="sm" className="ml-auto" onClick={() => void load()}>
           {t.common.refresh}
         </Button>
       </div>
       <div className="flex-1 overflow-hidden rounded-lg border">
-        {error ? <p role="alert" className="text-destructive p-4 text-sm">{error}</p> : devices === null ? (
+        {error ? (
+          <p role="alert" className="text-destructive p-4 text-sm">
+            {error}
+          </p>
+        ) : devices === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
             {t.common.loading}
           </div>
@@ -95,7 +89,7 @@ export default function TokensPage() {
                   <TableRow key={device.id}>
                     <TableCell className="pl-3 font-medium">{device.name}</TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(device.createdAt), 'MMM d, yyyy, HH:mm')}
+                      {format(new Date(device.createdAt), "MMM d, yyyy, HH:mm")}
                     </TableCell>
                     <TableCell>
                       <Button

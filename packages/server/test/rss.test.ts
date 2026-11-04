@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, test } from 'bun:test'
 import fs from 'node:fs/promises'
-import path from 'node:path'
 import os from 'node:os'
+import path from 'node:path'
 import { Hono } from 'hono'
-import { createRssService } from '../src/rss'
 import type { RssOptions, RssService } from '../src/rss'
+import { createRssService } from '../src/rss'
 
 const RSS_XML = `<?xml version="1.0"?>
 <rss version="2.0"><channel><title>RSS Channel</title>
@@ -43,7 +43,10 @@ interface Harness {
   setDns: (address: string) => void
 }
 
-async function harness(feedXml: string, options?: { legacyFeeds?: unknown; refreshIntervalMs?: number }): Promise<Harness> {
+async function harness(
+  feedXml: string,
+  options?: { legacyFeeds?: unknown; refreshIntervalMs?: number },
+): Promise<Harness> {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'halloween-rss-'))
   temporary.push(root)
   const dataRoot = path.join(root, 'data')
@@ -51,7 +54,11 @@ async function harness(feedXml: string, options?: { legacyFeeds?: unknown; refre
   await fs.mkdir(dataRoot)
   await fs.mkdir(stateRoot)
   if (options?.legacyFeeds !== undefined) {
-    await fs.writeFile(path.join(stateRoot, '.rss-feeds.json'), JSON.stringify(options.legacyFeeds), 'utf-8')
+    await fs.writeFile(
+      path.join(stateRoot, '.rss-feeds.json'),
+      JSON.stringify(options.legacyFeeds),
+      'utf-8',
+    )
   }
   let body = feedXml
   let status = 200
@@ -150,7 +157,9 @@ describe('rss parsing (RSS 2.0 / Atom / RDF)', () => {
     await h.service.refreshNow()
     const { items } = await listItems(h)
     expect(items.length).toBeGreaterThan(0) // previous items survive
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ id: string; ok: boolean; error: string }> }
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ id: string; ok: boolean; error: string }>
+    }
     const feed = list.feeds.find((f) => f.id === id)!
     expect(feed.ok).toBe(false)
     expect(feed.error).toContain('unsupported feed format')
@@ -163,7 +172,9 @@ describe('rss admin CRUD + persistence', () => {
     const id = await addFeed(h)
     const root = temporary.at(-1)!
     const file = path.join(root, 'state', 'rss-feeds.json')
-    const saved = JSON.parse(await fs.readFile(file, 'utf-8')) as { feeds: Array<{ id: string; url: string; enabled: boolean }> }
+    const saved = JSON.parse(await fs.readFile(file, 'utf-8')) as {
+      feeds: Array<{ id: string; url: string; enabled: boolean }>
+    }
     expect(saved.feeds).toHaveLength(1)
     expect(saved.feeds[0]!.enabled).toBe(true)
 
@@ -180,7 +191,9 @@ describe('rss admin CRUD + persistence', () => {
       body: JSON.stringify({ id, title: 'renamed', enabled: false }),
     })
     expect(ok.status).toBe(200)
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ id: string; title: string; enabled: boolean }> }
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ id: string; title: string; enabled: boolean }>
+    }
     expect(list.feeds[0]!.title).toBe('renamed')
     expect(list.feeds[0]!.enabled).toBe(false)
 
@@ -189,13 +202,27 @@ describe('rss admin CRUD + persistence', () => {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id }),
     })
-    const after = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: unknown[] }
+    const after = (await (await h.admin.request('/api/rss/feeds')).json()) as { feeds: unknown[] }
     expect(after.feeds).toHaveLength(0)
   })
 
   test('legacy .rss-feeds.json migrates to the plain name; conflicting copies fail closed', async () => {
-    const h = await harness(RSS_XML, { legacyFeeds: { feeds: [{ id: 'legacy', title: 'old', url: 'https://example.com/feed', enabled: true, createdAt: 1 }] } })
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ id: string }> }
+    const h = await harness(RSS_XML, {
+      legacyFeeds: {
+        feeds: [
+          {
+            id: 'legacy',
+            title: 'old',
+            url: 'https://example.com/feed',
+            enabled: true,
+            createdAt: 1,
+          },
+        ],
+      },
+    })
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ id: string }>
+    }
     expect(list.feeds.map((f) => f.id)).toEqual(['legacy'])
     const root = temporary.at(-1)!
     expect(await fs.exists(path.join(root, 'state', 'rss-feeds.json'))).toBe(true)
@@ -210,7 +237,9 @@ describe('rss SSRF guard', () => {
     await addFeed(h, 'http://127.0.0.1:3690/cloud/api/health')
     await h.service.refreshNow()
     expect(h.fetched).toHaveLength(0)
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ error: string }> }
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ error: string }>
+    }
     expect(list.feeds[0]!.error).toBe('feed host is a blocked address')
   })
 
@@ -220,7 +249,9 @@ describe('rss SSRF guard', () => {
     await addFeed(h, 'https://internal.example.com/feed')
     await h.service.refreshNow()
     expect(h.fetched).toHaveLength(0)
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ error: string }> }
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ error: string }>
+    }
     expect(list.feeds[0]!.error).toBe('feed host resolves to a blocked address')
   })
 
@@ -232,7 +263,9 @@ describe('rss SSRF guard', () => {
     await addFeed(h, 'https://public.example.com/feed')
     await h.service.refreshNow()
     expect(h.fetched).toEqual(['https://public.example.com/feed']) // exactly one hop, second blocked
-    const list = await (await h.admin.request('/api/rss/feeds')).json() as { feeds: Array<{ error: string }> }
+    const list = (await (await h.admin.request('/api/rss/feeds')).json()) as {
+      feeds: Array<{ error: string }>
+    }
     expect(list.feeds[0]!.error).toBe('feed host is a blocked address')
   })
 })
@@ -254,7 +287,7 @@ describe('rss service lifecycle', () => {
     const a = await harness(RSS_XML)
     const b = await harness(ATOM_XML)
     await addFeed(a)
-    const listB = await (await b.admin.request('/api/rss/feeds')).json() as { feeds: unknown[] }
+    const listB = (await (await b.admin.request('/api/rss/feeds')).json()) as { feeds: unknown[] }
     expect(listB.feeds).toHaveLength(0)
   })
 })

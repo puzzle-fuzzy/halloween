@@ -1,13 +1,13 @@
 import { randomUUID } from 'node:crypto'
 import { lookup } from 'node:dns/promises'
-import { isIP } from 'node:net'
 import fs from 'node:fs/promises'
+import { isIP } from 'node:net'
 import path from 'node:path'
-import { Hono } from 'hono'
+import type { RssFeed, RssItem } from '@halloween/contracts/rss'
 import { XMLParser } from 'fast-xml-parser'
+import type { Hono } from 'hono'
 import { atomicJson, migrateState } from './storage'
 
-import type { RssFeed, RssItem } from '@halloween/contracts/rss'
 export type { RssFeed, RssItem }
 
 interface FeedSnapshot {
@@ -59,7 +59,10 @@ export interface RssOptions {
 }
 
 /** narrow slice of dns.lookup — enough for the SSRF guard, easy to stub */
-type DnsLookup = (hostname: string, options: { all: true }) => Promise<Array<{ address: string; family: number }>>
+type DnsLookup = (
+  hostname: string,
+  options: { all: true },
+) => Promise<Array<{ address: string; family: number }>>
 
 // ------------------------------------------------------------- xml parsing
 
@@ -75,7 +78,8 @@ function textOf(v: unknown): string {
   if (v == null) return ''
   if (typeof v === 'string') return v
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-  if (typeof v === 'object') return textOf(Array.isArray(v) ? v[0] : (v as Record<string, unknown>)['#text'])
+  if (typeof v === 'object')
+    return textOf(Array.isArray(v) ? v[0] : (v as Record<string, unknown>)['#text'])
   return ''
 }
 
@@ -124,39 +128,39 @@ interface RawItem {
 function parseFeed(body: string): { feedTitle: string; items: RawItem[] } {
   const doc = xml.parse(body) as Record<string, unknown>
 
-  const channel = (doc['rss'] as Record<string, unknown> | undefined)?.['channel'] as
+  const channel = (doc.rss as Record<string, unknown> | undefined)?.channel as
     | Record<string, unknown>
     | undefined
   if (channel) {
     return {
-      feedTitle: stripHtml(textOf(channel['title'])),
-      items: asArray(channel['item']).map((raw): RawItem => {
+      feedTitle: stripHtml(textOf(channel.title)),
+      items: asArray(channel.item).map((raw): RawItem => {
         const it = raw as Record<string, unknown>
-        const link = textOf(it['link'])
+        const link = textOf(it.link)
         return {
-          key: textOf(it['guid']) || link,
-          title: stripHtml(textOf(it['title'])) || link,
+          key: textOf(it.guid) || link,
+          title: stripHtml(textOf(it.title)) || link,
           link,
-          publishedAt: parseTime(textOf(it['pubDate'])) || parseTime(textOf(it['dc:date'])),
-          summary: stripHtml(textOf(it['description'])),
+          publishedAt: parseTime(textOf(it.pubDate)) || parseTime(textOf(it['dc:date'])),
+          summary: stripHtml(textOf(it.description)),
         }
       }),
     }
   }
 
-  const atom = doc['feed'] as Record<string, unknown> | undefined
+  const atom = doc.feed as Record<string, unknown> | undefined
   if (atom) {
     return {
-      feedTitle: stripHtml(textOf(atom['title'])),
-      items: asArray(atom['entry']).map((raw): RawItem => {
+      feedTitle: stripHtml(textOf(atom.title)),
+      items: asArray(atom.entry).map((raw): RawItem => {
         const it = raw as Record<string, unknown>
-        const link = atomLink(it['link'])
+        const link = atomLink(it.link)
         return {
-          key: textOf(it['id']) || link,
-          title: stripHtml(textOf(it['title'])) || link,
+          key: textOf(it.id) || link,
+          title: stripHtml(textOf(it.title)) || link,
           link,
-          publishedAt: parseTime(textOf(it['published'])) || parseTime(textOf(it['updated'])),
-          summary: stripHtml(textOf(it['summary']) || textOf(it['content'])),
+          publishedAt: parseTime(textOf(it.published)) || parseTime(textOf(it.updated)),
+          summary: stripHtml(textOf(it.summary) || textOf(it.content)),
         }
       }),
     }
@@ -164,18 +168,18 @@ function parseFeed(body: string): { feedTitle: string; items: RawItem[] } {
 
   const rdf = doc['rdf:RDF'] as Record<string, unknown> | undefined
   if (rdf) {
-    const channelTitle = (rdf['channel'] as Record<string, unknown> | undefined)?.['title']
+    const channelTitle = (rdf.channel as Record<string, unknown> | undefined)?.title
     return {
       feedTitle: stripHtml(textOf(channelTitle)),
-      items: asArray(rdf['item']).map((raw): RawItem => {
+      items: asArray(rdf.item).map((raw): RawItem => {
         const it = raw as Record<string, unknown>
-        const link = textOf(it['link'])
+        const link = textOf(it.link)
         return {
           key: link, // rdf items have no guid — the link is the stable key
-          title: stripHtml(textOf(it['title'])) || link,
+          title: stripHtml(textOf(it.title)) || link,
           link,
-          publishedAt: parseTime(textOf(it['dc:date'])) || parseTime(textOf(it['date'])),
-          summary: stripHtml(textOf(it['description'])),
+          publishedAt: parseTime(textOf(it['dc:date'])) || parseTime(textOf(it.date)),
+          summary: stripHtml(textOf(it.description)),
         }
       }),
     }
@@ -245,7 +249,11 @@ async function assertPublicFeedUrl(target: URL, dnsLookup: DnsLookup): Promise<v
   }
 }
 
-async function fetchFeedResponse(feedUrl: string, fetcher: typeof fetch, dnsLookup: DnsLookup): Promise<Response> {
+async function fetchFeedResponse(
+  feedUrl: string,
+  fetcher: typeof fetch,
+  dnsLookup: DnsLookup,
+): Promise<Response> {
   let target = feedUrl
   for (let hop = 0; hop <= MAX_REDIRECTS; hop++) {
     await assertPublicFeedUrl(new URL(target), dnsLookup)
@@ -267,21 +275,38 @@ async function fetchFeedResponse(feedUrl: string, fetcher: typeof fetch, dnsLook
 function parseFeedsState(raw: unknown): { feeds: RssFeed[] } {
   const feeds = (raw as { feeds?: unknown } | null | undefined)?.feeds
   if (!Array.isArray(feeds)) throw new Error('invalid rss-feeds state')
-  return { feeds: feeds.map((f) => ({ ...(f as RssFeed), enabled: (f as RssFeed).enabled !== false })) }
+  return {
+    feeds: feeds.map((f) => ({ ...(f as RssFeed), enabled: (f as RssFeed).enabled !== false })),
+  }
 }
 
 export async function createRssService(options: RssOptions): Promise<RssService> {
   const now = options.now ?? Date.now
   const fetcher = options.fetcher ?? fetch
-  const dnsLookup = options.dnsLookup ?? ((hostname, lookupOptions) => lookup(hostname, lookupOptions))
+  const dnsLookup =
+    options.dnsLookup ?? ((hostname, lookupOptions) => lookup(hostname, lookupOptions))
   const feedsFile = path.join(options.stateRoot, FEEDS_NAME)
   const cacheFile = path.join(options.stateRoot, CACHE_NAME)
 
   // rss state belongs in stateRoot, not the user-visible cloud data root.
   // Feeds are the user's source of truth → fail-closed migration when two
   // copies disagree; the cache is regenerable → tolerant soft migration.
-  await migrateState(options.stateRoot, options.stateRoot, `.${FEEDS_NAME}`, FEEDS_NAME, parseFeedsState, { feeds: [] })
-  const { feeds } = await migrateState(options.dataRoot, options.stateRoot, `.${FEEDS_NAME}`, FEEDS_NAME, parseFeedsState, { feeds: [] })
+  await migrateState(
+    options.stateRoot,
+    options.stateRoot,
+    `.${FEEDS_NAME}`,
+    FEEDS_NAME,
+    parseFeedsState,
+    { feeds: [] },
+  )
+  const { feeds } = await migrateState(
+    options.dataRoot,
+    options.stateRoot,
+    `.${FEEDS_NAME}`,
+    FEEDS_NAME,
+    parseFeedsState,
+    { feeds: [] },
+  )
 
   let cache: RssCache = { refreshedAt: 0, byFeed: {} }
   {
@@ -354,8 +379,13 @@ export async function createRssService(options: RssOptions): Promise<RssService>
           cache.byFeed[feed.id] = snap.ok
             ? snap
             : // keep the previous items on failure — the cache must not go blank
-              { ...(prev ?? { items: [], feedTitle: '' }), fetchedAt: snap.fetchedAt, ok: false, error: snap.error }
-        })
+              {
+                ...(prev ?? { items: [], feedTitle: '' }),
+                fetchedAt: snap.fetchedAt,
+                ok: false,
+                error: snap.error,
+              }
+        }),
     )
     const ids = new Set(feeds.map((f) => f.id))
     for (const id of Object.keys(cache.byFeed)) {
@@ -397,7 +427,9 @@ export async function createRssService(options: RssOptions): Promise<RssService>
     void refreshNow().catch((err) => console.error('[rss] initial refresh failed:', err))
   }
   if (!options.quiet) {
-    console.log(`[rss] ${feeds.length} feed(s), refreshing every ${(options.refreshIntervalMs ?? REFRESH_INTERVAL_MS) / 60000} min`)
+    console.log(
+      `[rss] ${feeds.length} feed(s), refreshing every ${(options.refreshIntervalMs ?? REFRESH_INTERVAL_MS) / 60000} min`,
+    )
   }
 
   return {

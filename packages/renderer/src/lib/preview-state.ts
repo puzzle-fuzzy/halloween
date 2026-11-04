@@ -12,14 +12,24 @@ export function createPreviewRefreshGuard(intervalMs = 60_000) {
       lastRefresh = now
       return true
     },
-    recordManual(now: number) { lastRefresh = now },
+    recordManual(now: number) {
+      lastRefresh = now
+    },
   }
 }
 
-export function capturePlaybackPosition(media: { currentTime: number; paused: boolean }): PlaybackPosition {
-  return { time: Number.isFinite(media.currentTime) ? Math.max(0, media.currentTime) : 0, paused: media.paused }
+export function capturePlaybackPosition(media: {
+  currentTime: number
+  paused: boolean
+}): PlaybackPosition {
+  return {
+    time: Number.isFinite(media.currentTime) ? Math.max(0, media.currentTime) : 0,
+    paused: media.paused,
+  }
 }
 
 export function playbackTime(position: PlaybackPosition, duration: number): number {
-  return Number.isFinite(duration) ? Math.min(position.time, Math.max(0, duration - 0.05)) : position.time
+  return Number.isFinite(duration)
+    ? Math.min(position.time, Math.max(0, duration - 0.05))
+    : position.time
 }

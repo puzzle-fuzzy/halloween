@@ -1,7 +1,3 @@
-import * as React from "react"
-import { format } from "date-fns"
-import { IconPencil, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react"
-
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Checkbox } from "@halloween/ui/checkbox"
@@ -14,16 +10,12 @@ import {
 } from "@halloween/ui/dialog"
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@halloween/ui/table"
-import { adminApi } from "@/lib/api"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@halloween/ui/table"
+import { IconPencil, IconPlus, IconRefresh, IconTrash } from "@tabler/icons-react"
+import { format } from "date-fns"
+import * as React from "react"
 import { useI18n } from "@/i18n"
+import { adminApi } from "@/lib/api"
 
 interface Feed {
   id: string
@@ -67,9 +59,9 @@ export default function RssPage() {
 
   const load = React.useCallback(async () => {
     try {
-      setData(await adminApi<FeedsResponse>('/rss/feeds'))
+      setData(await adminApi<FeedsResponse>("/rss/feeds"))
     } catch {
-      window.location.hash = '#/login'
+      window.location.hash = "#/login"
     }
   }, [])
 
@@ -81,7 +73,7 @@ export default function RssPage() {
     setRefreshing(true)
     setError("")
     try {
-      await adminApi('/rss/refresh', { method: 'POST' })
+      await adminApi("/rss/refresh", { method: "POST" })
       await load()
     } catch (e) {
       setError(String(e))
@@ -101,12 +93,12 @@ export default function RssPage() {
     }
     try {
       if (dialog.mode === "create") {
-        await adminApi('/rss/feeds', { method: 'POST', body: JSON.stringify(body) })
+        await adminApi("/rss/feeds", { method: "POST", body: JSON.stringify(body) })
         setDialog(null)
         await refresh()
         return
       }
-      await adminApi('/rss/feeds/update', { method: 'POST', body: JSON.stringify(body) })
+      await adminApi("/rss/feeds/update", { method: "POST", body: JSON.stringify(body) })
       setDialog(null)
       void load()
     } catch (e) {
@@ -116,8 +108,8 @@ export default function RssPage() {
 
   const remove = async (feed: Feed) => {
     if (!window.confirm(t.rss.deleteConfirm(feedName(feed)))) return
-    await adminApi('/rss/feeds/delete', {
-      method: 'POST',
+    await adminApi("/rss/feeds/delete", {
+      method: "POST",
       body: JSON.stringify({ id: feed.id }),
     })
     void load()
@@ -126,15 +118,15 @@ export default function RssPage() {
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-muted-foreground flex-1 text-sm">
-          {t.rss.description}
-        </p>
+        <p className="text-muted-foreground flex-1 text-sm">{t.rss.description}</p>
         <span className="text-muted-foreground text-xs">
-          {data?.refreshedAt ? t.rss.updated(format(new Date(data.refreshedAt), 'MMM d, HH:mm')) : '—'}
-          {data ? ` · ${t.rss.items(data.total)}` : ''}
+          {data?.refreshedAt
+            ? t.rss.updated(format(new Date(data.refreshedAt), "MMM d, HH:mm"))
+            : "—"}
+          {data ? ` · ${t.rss.items(data.total)}` : ""}
         </span>
         <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={refreshing}>
-          <IconRefresh className={refreshing ? 'animate-spin' : ''} />
+          <IconRefresh className={refreshing ? "animate-spin" : ""} />
           {t.rss.refreshNow}
         </Button>
         <Button size="sm" onClick={() => setDialog({ ...emptyDialog })}>
@@ -165,7 +157,7 @@ export default function RssPage() {
               </TableHeader>
               <TableBody>
                 {data.feeds.map((feed) => (
-                  <TableRow key={feed.id} className={feed.enabled ? undefined : 'opacity-60'}>
+                  <TableRow key={feed.id} className={feed.enabled ? undefined : "opacity-60"}>
                     <TableCell className="max-w-0 pl-3">
                       <p className="truncate font-medium">{feedName(feed)}</p>
                       <p className="text-muted-foreground truncate text-xs">{feed.url}</p>
@@ -184,7 +176,7 @@ export default function RssPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {feed.fetchedAt ? format(new Date(feed.fetchedAt), 'MMM d, HH:mm') : '—'}
+                      {feed.fetchedAt ? format(new Date(feed.fetchedAt), "MMM d, HH:mm") : "—"}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -195,7 +187,7 @@ export default function RssPage() {
                           aria-label={t.common.edit}
                           onClick={() =>
                             setDialog({
-                              mode: 'edit',
+                              mode: "edit",
                               id: feed.id,
                               title: feed.title,
                               url: feed.url,
@@ -227,7 +219,9 @@ export default function RssPage() {
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dialog?.mode === 'create' ? t.rss.addTitle : t.rss.editTitle}</DialogTitle>
+            <DialogTitle>
+              {dialog?.mode === "create" ? t.rss.addTitle : t.rss.editTitle}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
@@ -235,7 +229,7 @@ export default function RssPage() {
               <Input
                 id="rss-title"
                 placeholder={t.rss.titlePlaceholder}
-                value={dialog?.title ?? ''}
+                value={dialog?.title ?? ""}
                 onChange={(e) => dialog && setDialog({ ...dialog, title: e.target.value })}
               />
             </div>
@@ -245,7 +239,7 @@ export default function RssPage() {
                 id="rss-url"
                 type="url"
                 placeholder="https://example.com/feed.xml"
-                value={dialog?.url ?? ''}
+                value={dialog?.url ?? ""}
                 onChange={(e) => dialog && setDialog({ ...dialog, url: e.target.value })}
               />
             </div>
@@ -265,9 +259,12 @@ export default function RssPage() {
             </Button>
             <Button
               onClick={() => void save()}
-              disabled={!dialog?.url.trim() || (!dialog.url.startsWith('http://') && !dialog.url.startsWith('https://'))}
+              disabled={
+                !dialog?.url.trim() ||
+                (!dialog.url.startsWith("http://") && !dialog.url.startsWith("https://"))
+              }
             >
-              {dialog?.mode === 'create' ? t.common.add : t.common.save}
+              {dialog?.mode === "create" ? t.common.add : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>

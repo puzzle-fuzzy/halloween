@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import type { TransferProgress } from '@halloween/contracts/transfers'
+
 export type { TransferProgress } from '@halloween/contracts'
 
 export class TransferRegistry {
@@ -8,7 +9,9 @@ export class TransferRegistry {
   private controllers = new Map<string, AbortController>()
   notify: (progress: TransferProgress) => void = () => {}
   constructor(private historyLimit = 100) {}
-  list(): TransferProgress[] { return [...this.entries.values()].map((value) => ({ ...value })) }
+  list(): TransferProgress[] {
+    return [...this.entries.values()].map((value) => ({ ...value }))
+  }
   start(kind: TransferProgress['kind'], name: string, total = 0): string {
     const id = randomUUID()
     this.controllers.set(id, new AbortController())
@@ -30,10 +33,19 @@ export class TransferRegistry {
     const entry = this.entries.get(id)
     if (entry?.status === 'running') {
       this.controllers.delete(id)
-      this.publish({ ...entry, status: 'failed', error: error instanceof Error ? error.message : String(error) }, true)
+      this.publish(
+        {
+          ...entry,
+          status: 'failed',
+          error: error instanceof Error ? error.message : String(error),
+        },
+        true,
+      )
     }
   }
-  signal(id: string): AbortSignal | undefined { return this.controllers.get(id)?.signal }
+  signal(id: string): AbortSignal | undefined {
+    return this.controllers.get(id)?.signal
+  }
   cancel(id: string): void {
     const entry = this.entries.get(id)
     if (entry?.status !== 'running') return

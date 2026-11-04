@@ -98,7 +98,9 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
-    <CloudAuthContext.Provider value={{ authed, error, authCode, signingIn, retry, handleError, login, logout }}>
+    <CloudAuthContext.Provider
+      value={{ authed, error, authCode, signingIn, retry, handleError, login, logout }}
+    >
       {children}
     </CloudAuthContext.Provider>
   )

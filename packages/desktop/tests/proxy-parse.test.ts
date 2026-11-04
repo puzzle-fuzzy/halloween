@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { parseSubscriptionBody, uniqueNames } from '../src/main/proxy-parse'
 import type { ClashProxy } from '../src/main/proxy-parse'
+import { parseSubscriptionBody, uniqueNames } from '../src/main/proxy-parse'
 
 function parseOne(uri: string): ClashProxy {
   const [proxy] = parseSubscriptionBody(uri)
@@ -11,12 +11,25 @@ function parseOne(uri: string): ClashProxy {
 describe('parseSubscriptionBody: ss links', () => {
   test('plain userinfo with fragment name', () => {
     const p = parseOne('ss://YWVzLTI1Ni1nY206c2VjcmV0cGFzcw==@1.2.3.4:8388#%E9%A6%99%E6%B8%AF')
-    expect(p).toMatchObject({ name: '香港', type: 'ss', server: '1.2.3.4', port: 8388, cipher: 'aes-256-gcm', password: 'secretpass' })
+    expect(p).toMatchObject({
+      name: '香港',
+      type: 'ss',
+      server: '1.2.3.4',
+      port: 8388,
+      cipher: 'aes-256-gcm',
+      password: 'secretpass',
+    })
   })
 
   test('legacy all-base64 variant', () => {
     const p = parseOne('ss://cmM0LW1kNTpwd0AxLjIuMy40OjQ0Mw==')
-    expect(p).toMatchObject({ type: 'ss', server: '1.2.3.4', port: 443, cipher: 'rc4-md5', password: 'pw' })
+    expect(p).toMatchObject({
+      type: 'ss',
+      server: '1.2.3.4',
+      port: 443,
+      cipher: 'rc4-md5',
+      password: 'pw',
+    })
     expect(p.name).toBe('1.2.3.4:443') // no fragment → host:port
   })
 
@@ -28,7 +41,7 @@ describe('parseSubscriptionBody: ss links', () => {
 describe('parseSubscriptionBody: vmess links', () => {
   test('ws + tls fields map to clash keys', () => {
     const p = parseOne(
-      'vmess://eyJ2IjoiMiIsInBzIjoi6aaZ5rivIDAxIiwiYWRkIjoidi5leGFtcGxlLmNvbSIsInBvcnQiOiI0NDMiLCJpZCI6ImI4MzEzODFkLTYzMjQtNGQ1My1hZDRmLThjZGE0OGIzMDgxMSIsImFpZCI6IjAiLCJuZXQiOiJ3cyIsImhvc3QiOiJjZG4uZXhhbXBsZS5jb20iLCJwYXRoIjoiL3dzIiwidGxzIjoidGxzIiwic25pIjoicy5leGFtcGxlLmNvbSJ9'
+      'vmess://eyJ2IjoiMiIsInBzIjoi6aaZ5rivIDAxIiwiYWRkIjoidi5leGFtcGxlLmNvbSIsInBvcnQiOiI0NDMiLCJpZCI6ImI4MzEzODFkLTYzMjQtNGQ1My1hZDRmLThjZGE0OGIzMDgxMSIsImFpZCI6IjAiLCJuZXQiOiJ3cyIsImhvc3QiOiJjZG4uZXhhbXBsZS5jb20iLCJwYXRoIjoiL3dzIiwidGxzIjoidGxzIiwic25pIjoicy5leGFtcGxlLmNvbSJ9',
     )
     expect(p).toMatchObject({
       name: '香港 01',
@@ -50,7 +63,9 @@ describe('parseSubscriptionBody: vmess links', () => {
 
 describe('parseSubscriptionBody: trojan links', () => {
   test('password, sni query, fragment name, allowInsecure', () => {
-    const p = parseOne('trojan://secretpw@a.example.com:8443?sni=s.example.com&allowInsecure=1#%F0%9F%9A%80%20HK')
+    const p = parseOne(
+      'trojan://secretpw@a.example.com:8443?sni=s.example.com&allowInsecure=1#%F0%9F%9A%80%20HK',
+    )
     expect(p).toMatchObject({
       name: '🚀 HK',
       type: 'trojan',
@@ -77,7 +92,7 @@ describe('parseSubscriptionBody: container formats', () => {
 
   test('base64-wrapped link list mixes protocols', () => {
     const proxies = parseSubscriptionBody(
-      'dHJvamFuOi8vcHdAYS5leGFtcGxlLmNvbTo0NDM/c25pPXMuZXhhbXBsZS5jb20jdGoKc3M6Ly9ZV1Z6TFRJMU5pMW5ZMjA2YzJWamNtVjBjR0Z6Y3c9PUBiLmV4YW1wbGUuY29tOjgzODgjc3Nub2Rl'
+      'dHJvamFuOi8vcHdAYS5leGFtcGxlLmNvbTo0NDM/c25pPXMuZXhhbXBsZS5jb20jdGoKc3M6Ly9ZV1Z6TFRJMU5pMW5ZMjA2YzJWamNtVjBjR0Z6Y3c9PUBiLmV4YW1wbGUuY29tOjgzODgjc3Nub2Rl',
     )
     expect(proxies).toHaveLength(2)
     expect(proxies[0]).toMatchObject({ type: 'trojan', name: 'tj' })
@@ -107,7 +122,10 @@ describe('uniqueNames', () => {
   })
 
   test('input objects are not mutated', () => {
-    const original = [{ name: 'a', type: 'ss' }, { name: 'a', type: 'ss' }]
+    const original = [
+      { name: 'a', type: 'ss' },
+      { name: 'a', type: 'ss' },
+    ]
     uniqueNames(original)
     expect(original.map((p) => p.name)).toEqual(['a', 'a'])
   })

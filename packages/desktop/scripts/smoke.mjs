@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process'
-import { createRequire } from 'node:module'
 import fs from 'node:fs/promises'
+import { createRequire } from 'node:module'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -8,11 +8,16 @@ import { fileURLToPath } from 'node:url'
 const require = createRequire(import.meta.url)
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const mainFile = process.argv.includes('--packaged')
-  ? path.join(root, 'release/mac-arm64/Halloween.app/Contents/Resources/app.asar/dist/main/index.js')
+  ? path.join(
+      root,
+      'release/mac-arm64/Halloween.app/Contents/Resources/app.asar/dist/main/index.js',
+    )
   : path.join(root, 'dist/main/index.js')
 const temporary = await fs.mkdtemp(path.join(os.tmpdir(), 'halloween-electron-smoke-'))
 const entry = path.join(temporary, 'smoke.cjs')
-await fs.writeFile(entry, `
+await fs.writeFile(
+  entry,
+  `
 const {app, BrowserWindow} = require('electron');
 const assert = require('node:assert/strict');
 app.setPath('userData', ${JSON.stringify(path.join(temporary, 'user-data'))});
@@ -61,7 +66,8 @@ app.whenReady().then(async () => {
   app.quit();
 }).catch(error => { console.error(error); app.exit(1); });
 setTimeout(() => { console.error('Smoke test timed out'); app.exit(1); }, 25000);
-`)
+`,
+)
 try {
   const executable = require('electron')
   const env = { ...process.env }

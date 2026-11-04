@@ -106,9 +106,11 @@ export const en = {
     viewTrash: "View Trash",
     noResults: "No results",
     clear: "Clear",
-    moveToTrash: (n: number, folders: boolean) => `Move ${n} item${n === 1 ? "" : "s"} to Trash?${folders ? " Folder contents will move with them." : ""} You can restore them from Trash.`,
+    moveToTrash: (n: number, folders: boolean) =>
+      `Move ${n} item${n === 1 ? "" : "s"} to Trash?${folders ? " Folder contents will move with them." : ""} You can restore them from Trash.`,
     movedToTrash: "Moved selected items to Trash",
-    partialMoveNotice: (detail: string) => `Some items may already have moved to Trash. Review the current list and Trash before trying again. ${detail}`,
+    partialMoveNotice: (detail: string) =>
+      `Some items may already have moved to Trash. Review the current list and Trash before trying again. ${detail}`,
     previewGone: "Preview is no longer available",
   },
   oss: {
@@ -127,7 +129,8 @@ export const en = {
     modified: "Modified",
     uploadComplete: "Upload complete",
     savedTo: (dir: string) => `Saved to ${dir}`,
-    deleteConfirm: (n: number, folders: boolean) => `Permanently delete ${n} item${n === 1 ? "" : "s"}?${folders ? " All files and subfolders inside selected folders will also be deleted." : ""} This cannot be undone.`,
+    deleteConfirm: (n: number, folders: boolean) =>
+      `Permanently delete ${n} item${n === 1 ? "" : "s"}?${folders ? " All files and subfolders inside selected folders will also be deleted." : ""} This cannot be undone.`,
     transferCancelled: "Transfer cancelled",
     nameNoSeparators: "Enter a name without path separators.",
     loadMore: "Load more",
@@ -229,7 +232,8 @@ export const en = {
     applyingChanges: "Applying changes…",
     restoredN: (n: number) => `Restored ${n} item${n === 1 ? "" : "s"}`,
     restoredTo: (path: string) => `Restored to ${path}`,
-    invalidPath: "Enter a full cloud path, without hidden names or dot segments, such as /photos/holiday-restored.jpg.",
+    invalidPath:
+      "Enter a full cloud path, without hidden names or dot segments, such as /photos/holiday-restored.jpg.",
     pathExists: "That path already exists. Choose a different destination.",
     choosePathTitle: "Choose a different restore path",
     choosePathDesc: "The original path already exists. Existing files will not be overwritten.",
@@ -240,11 +244,13 @@ export const en = {
     restoreToPath: "Restore to this path",
     emptyTitle: "Empty trash permanently?",
     deleteSelectedTitle: "Delete selected items permanently?",
-    purgeDesc: "This removes the stored files, including folder contents, and cannot be undone. A backup may not contain these items.",
+    purgeDesc:
+      "This removes the stored files, including folder contents, and cannot be undone. A backup may not contain these items.",
     typePhrase: (phrase: string) => `Type ${phrase} to confirm`,
     deletePermanently: "Delete permanently",
     purgedN: (n: number) => `Permanently deleted ${n} item${n === 1 ? "" : "s"}`,
-    purgePartial: (n: number) => `Permanently deleted ${n} item${n === 1 ? "" : "s"}. Some items could not be deleted. Review the current list and confirm a new deletion for the remaining items.`,
+    purgePartial: (n: number) =>
+      `Permanently deleted ${n} item${n === 1 ? "" : "s"}. Some items could not be deleted. Review the current list and confirm a new deletion for the remaining items.`,
     purgeSomeFailed: "Some items could not be permanently deleted",
     purgeUncertain:
       "The deletion result could not be confirmed. Some items may already have been permanently deleted. Review the current list and select any remaining items for a new confirmation.",
@@ -263,14 +269,17 @@ export const en = {
     readyDesc: "Your server is ready to use its dedicated backup repository.",
     needsAttention: "The backup service needs attention on your server.",
     engine: (version: string) => `Backup engine: ${version}`,
-    configureHint: "Configure a dedicated backup repository, its password file, and restic on your server, then refresh status. Credentials stay on the server.",
-    checkEngineHint: "Check the backup engine and repository settings on your server, then refresh status.",
+    configureHint:
+      "Configure a dedicated backup repository, its password file, and restic on your server, then refresh status. Credentials stay on the server.",
+    checkEngineHint:
+      "Check the backup engine and repository settings on your server, then refresh status.",
     lastBackup: "Last successful backup",
     lastCheck: "Last integrity check",
     lastVerify: "Last restore verification",
     noRuns: "No completed run recorded.",
     runTask: "Run a backup task",
-    runTaskDesc: "Tasks continue on the server if you leave this page. Only one task can run at a time.",
+    runTaskDesc:
+      "Tasks continue on the server if you leave this page. Only one task can run at a time.",
     createNow: "Create backup now",
     checkIntegrity: "Check repository integrity",
     refreshSnapshots: "Refresh snapshots",
@@ -299,14 +308,18 @@ export const en = {
     jobFailed: "Failed",
     taskCompleted: (kind: string) => `${kind} completed`,
     taskStatus: (kind: string, status: string) => `${kind} ${status}`,
-    livePaused: (detail: string) => `Live updates paused. The job may still be running on the server. ${detail}`,
+    livePaused: (detail: string) =>
+      `Live updates paused. The job may still be running on the server. ${detail}`,
     progressAria: "Backup task progress",
     working: "Working…",
-    filesUnit: (done: number, total?: number) => `${done}${total !== undefined ? ` / ${total}` : ""} files`,
+    filesUnit: (done: number, total?: number) =>
+      `${done}${total !== undefined ? ` / ${total}` : ""} files`,
     startedAt: (time: string) => `Started ${time}`,
     verifyTitle: "Verify a restore",
-    verifyDesc: "Restores the selected snapshot into an isolated workspace and compares its files with the saved manifest.",
-    snapshotListCached: "The snapshot list is cached. Use Refresh snapshots to fetch the latest list from the repository.",
+    verifyDesc:
+      "Restores the selected snapshot into an isolated workspace and compares its files with the saved manifest.",
+    snapshotListCached:
+      "The snapshot list is cached. Use Refresh snapshots to fetch the latest list from the repository.",
     snapshot: "Snapshot",
     noSnapshots: "No snapshots available",
     verifyRestore: "Verify restore",

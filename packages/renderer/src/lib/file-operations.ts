@@ -6,7 +6,9 @@ export function createRequestTracker() {
   return {
     start: () => ++revision,
     isCurrent: (request: number) => request === revision,
-    invalidate: () => { revision += 1 },
+    invalidate: () => {
+      revision += 1
+    },
   }
 }
 

@@ -1,7 +1,37 @@
-import type { TrashListing, TrashPurgeInput, TrashPurgeResult, BackupStatus, BackupJobKind, BackupJob, FileEntry as CloudEntry, OssAccountInfo, OssBucketInfo, OssEntry, RssItem, TransferProgress } from "@halloween/contracts"
-export type { TrashEntry, TrashListing, TrashPurgeInput, TrashRestoreResult, TrashPurgeResult, BackupJobKind, BackupJob, BackupSnapshot, BackupStatus, BackupStartInput, FileEntry, OssAccountInfo, OssBucketInfo, OssEntry, RssFeed, RssItem, TransferProgress } from "@halloween/contracts"
+import type {
+  BackupJob,
+  BackupJobKind,
+  BackupStatus,
+  FileEntry as CloudEntry,
+  OssAccountInfo,
+  OssBucketInfo,
+  OssEntry,
+  RssItem,
+  TransferProgress,
+  TrashListing,
+  TrashPurgeInput,
+  TrashPurgeResult,
+} from "@halloween/contracts"
 
-export {}
+export type {
+  BackupJob,
+  BackupJobKind,
+  BackupSnapshot,
+  BackupStartInput,
+  BackupStatus,
+  FileEntry,
+  OssAccountInfo,
+  OssBucketInfo,
+  OssEntry,
+  RssFeed,
+  RssItem,
+  TransferProgress,
+  TrashEntry,
+  TrashListing,
+  TrashPurgeInput,
+  TrashPurgeResult,
+  TrashRestoreResult,
+} from "@halloween/contracts"
 
 export type { CloudEntry }
 
@@ -24,7 +54,7 @@ export interface ProxyState {
   running: boolean
   busy: boolean
   sysProxy: boolean
-  mode: 'sys' | 'tun'
+  mode: "sys" | "tun"
   tunReady: boolean
   mixedPort: number
   subscriptions: ProxySubscriptionInfo[]
@@ -57,7 +87,7 @@ declare global {
           accountId: string,
           bucket: string,
           prefix: string,
-          marker?: string
+          marker?: string,
         ) => Promise<{ entries: OssEntry[]; truncated: boolean; nextMarker?: string }>
         previewUrl: (accountId: string, bucket: string, key: string) => Promise<{ url: string }>
         mkdir: (accountId: string, bucket: string, key: string) => Promise<unknown>
@@ -66,20 +96,20 @@ declare global {
         pickAndUpload: (
           accountId: string,
           bucket: string,
-          prefix: string
+          prefix: string,
         ) => Promise<{ name: string; size: number }[]>
         uploadFiles: (
           accountId: string,
           bucket: string,
           prefix: string,
-          localPaths: string[]
+          localPaths: string[],
         ) => Promise<{ name: string; size: number }[]>
         downloadTo: (
           accountId: string,
           bucket: string,
           key: string,
           name: string,
-          targetDir: string
+          targetDir: string,
         ) => Promise<string>
       }
       rss?: {
@@ -90,7 +120,7 @@ declare global {
         state: () => Promise<ProxyState>
         enable: () => Promise<ProxyState>
         disable: () => Promise<ProxyState>
-        setMode: (mode: 'sys' | 'tun') => Promise<ProxyState>
+        setMode: (mode: "sys" | "tun") => Promise<ProxyState>
         installTun: () => Promise<ProxyState>
         addSubscription: (url: string) => Promise<ProxyState>
         deleteSubscription: (id: string) => Promise<ProxyState>
@@ -105,23 +135,28 @@ declare global {
             upTotal: number
             downTotal: number
             ts: number
-          }) => void
+          }) => void,
         ) => () => void
       }
       cloud?: {
         login: () => Promise<{ ok: boolean }>
         logout: () => Promise<void>
         isAuthed: () => Promise<boolean>
-        openAdmin: (page?: 'profile' | 'tokens' | 'oss-accounts') => Promise<void>
+        openAdmin: (page?: "profile" | "tokens" | "oss-accounts") => Promise<void>
         transfers: () => Promise<TransferProgress[]>
         cancelTransfer: (id: string) => Promise<void>
-        onAuthCode: (callback: (code: { userCode: string; expiresAt: number }) => void) => () => void
+        onAuthCode: (
+          callback: (code: { userCode: string; expiresAt: number }) => void,
+        ) => () => void
         profile: () => Promise<{
           profile: { name: string; email: string; avatar: string }
         }>
         list: (dir: string) => Promise<{ entries: CloudEntry[] }>
         listTrash: () => Promise<TrashListing>
-        restoreTrash: (id: string, destination?: string) => Promise<{ ok: true; path: string; warning?: string }>
+        restoreTrash: (
+          id: string,
+          destination?: string,
+        ) => Promise<{ ok: true; path: string; warning?: string }>
         purgeTrash: (input: TrashPurgeInput) => Promise<TrashPurgeResult>
         backupStatus: () => Promise<BackupStatus>
         startBackupJob: (input: { kind: BackupJobKind; snapshotId?: string }) => Promise<BackupJob>
@@ -132,7 +167,10 @@ declare global {
         search: (q: string) => Promise<{ entries: CloudEntry[] }>
         fileUrl: (remotePath: string) => Promise<string>
         pickAndUpload: (remoteDir: string) => Promise<{ name: string; size: number }[]>
-        uploadFiles: (localPaths: string[], remoteDir: string) => Promise<{ name: string; size: number }[]>
+        uploadFiles: (
+          localPaths: string[],
+          remoteDir: string,
+        ) => Promise<{ name: string; size: number }[]>
         chooseDownloadDir: () => Promise<string | null>
         downloadTo: (remotePath: string, name: string, targetDir: string) => Promise<string>
         onProgress: (callback: (progress: TransferProgress) => void) => () => void

@@ -1,5 +1,5 @@
 import { expect, test } from 'bun:test'
-import { TransferRegistry, type TransferProgress } from '../src/main/transfers'
+import { type TransferProgress, TransferRegistry } from '../src/main/transfers'
 
 test('bytes sent do not complete an upload; only the confirmed terminal status does', () => {
   const registry = new TransferRegistry()
@@ -17,7 +17,8 @@ test('bytes sent do not complete an upload; only the confirmed terminal status d
 test('keeps active transfers while bounding completed history and returning independent snapshots', () => {
   const registry = new TransferRegistry(2)
   const active = registry.start('download', 'active')
-  for (let index = 0; index < 5; index++) registry.complete(registry.start('download', String(index)))
+  for (let index = 0; index < 5; index++)
+    registry.complete(registry.start('download', String(index)))
   const list = registry.list()
   expect(list.length).toBe(3)
   expect(list.find((entry) => entry.id === active)?.status).toBe('running')

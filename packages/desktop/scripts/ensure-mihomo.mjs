@@ -24,7 +24,9 @@ const version = process.env.MIHOMO_VERSION ?? 'v1.19.13'
 const mirror = process.env.MIHOMO_MIRROR?.replace(/\/$/, '') // e.g. https://ghfast.top/https://github.com
 const asset = `mihomo-windows-amd64-${version}.zip`
 const urls = [
-  ...(mirror ? [`${mirror}/https://github.com/MetaCubeX/mihomo/releases/download/${version}/${asset}`] : []),
+  ...(mirror
+    ? [`${mirror}/https://github.com/MetaCubeX/mihomo/releases/download/${version}/${asset}`]
+    : []),
   `https://github.com/MetaCubeX/mihomo/releases/download/${version}/${asset}`,
 ]
 

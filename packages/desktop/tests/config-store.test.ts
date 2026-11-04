@@ -10,7 +10,11 @@ async function fixture() {
   directories.push(dir)
   return path.join(dir, 'cloud-config.json')
 }
-afterEach(async () => { await Promise.all(directories.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true }))) })
+afterEach(async () => {
+  await Promise.all(
+    directories.splice(0).map((dir) => fs.rm(dir, { recursive: true, force: true })),
+  )
+})
 const cipher: TokenCipher = {
   isEncryptionAvailable: () => true,
   encryptString: (value) => Buffer.from(value.split('').reverse().join('')),
@@ -34,7 +38,10 @@ test('migrates a plaintext token, preserves the endpoint and limits file permiss
 
 test('does not silently downgrade encryption or destroy the old sign-in when the keychain is locked', async () => {
   const filename = await fixture()
-  const original = JSON.stringify({ serverUrl: 'https://example.invalid/cloud', token: 'old-token' })
+  const original = JSON.stringify({
+    serverUrl: 'https://example.invalid/cloud',
+    token: 'old-token',
+  })
   await fs.writeFile(filename, original)
   const store = createConfigStore(filename, { ...cipher, isEncryptionAvailable: () => false })
   await expect(store.load()).rejects.toThrow('encryption is unavailable')
@@ -43,19 +50,34 @@ test('does not silently downgrade encryption or destroy the old sign-in when the
 
 test('an unreadable encrypted sign-in produces an actionable error', async () => {
   const filename = await fixture()
-  await createConfigStore(filename, cipher).save({ serverUrl: 'https://example.invalid/cloud', token: 'token' })
-  await expect(createConfigStore(filename, { ...cipher, decryptString: () => { throw new Error('invalid cipher') } }).load())
-    .rejects.toThrow('could not be decrypted')
+  await createConfigStore(filename, cipher).save({
+    serverUrl: 'https://example.invalid/cloud',
+    token: 'token',
+  })
+  await expect(
+    createConfigStore(filename, {
+      ...cipher,
+      decryptString: () => {
+        throw new Error('invalid cipher')
+      },
+    }).load(),
+  ).rejects.toThrow('could not be decrypted')
 })
 
 test('rejects corrupt configuration types and insecure Linux basic_text storage', async () => {
   const filename = await fixture()
   for (const value of [null, [], { token: 123 }, { serverUrl: [] }, { encryptedToken: false }]) {
     await fs.writeFile(filename, JSON.stringify(value))
-    await expect(createConfigStore(filename, cipher).load()).rejects.toThrow('Unable to read saved cloud configuration')
+    await expect(createConfigStore(filename, cipher).load()).rejects.toThrow(
+      'Unable to read saved cloud configuration',
+    )
   }
-  await expect(createConfigStore(filename, { ...cipher, getSelectedStorageBackend: () => 'basic_text' })
-    .save({ serverUrl: 'https://example.invalid/cloud', token: 'private' })).rejects.toThrow('encryption is unavailable')
+  await expect(
+    createConfigStore(filename, { ...cipher, getSelectedStorageBackend: () => 'basic_text' }).save({
+      serverUrl: 'https://example.invalid/cloud',
+      token: 'private',
+    }),
+  ).rejects.toThrow('encryption is unavailable')
 })
 
 test('development endpoint overrides cannot forward a sign-in to another endpoint', () => {
@@ -64,5 +86,7 @@ test('development endpoint overrides cannot forward a sign-in to another endpoin
   expect(applyServerOverride(config, 'https://example.invalid/cloud/')).toEqual(config)
   expect(applyServerOverride(config, 'http://127.0.0.1:3690/cloud').token).toBe('')
   expect(applyServerOverride(config, 'https://example.invalid/another-service').token).toBe('')
-  expect(() => applyServerOverride(config, 'file:///tmp/cloud')).toThrow('Invalid HALLOWEEN_SERVER_URL')
+  expect(() => applyServerOverride(config, 'file:///tmp/cloud')).toThrow(
+    'Invalid HALLOWEEN_SERVER_URL',
+  )
 })

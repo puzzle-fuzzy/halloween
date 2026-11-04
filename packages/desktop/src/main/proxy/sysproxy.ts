@@ -6,12 +6,12 @@ const WININET_KEY = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Interne
 const BYPASS =
   'localhost;127.*;10.*;172.16.*;172.17.*;172.18.*;172.19.*;172.20.*;172.21.*;172.22.*;172.23.*;172.24.*;172.25.*;172.26.*;172.27.*;172.28.*;172.29.*;172.30.*;172.31.*;192.168.*;<local>'
 const PS_REFRESH =
-  "$sig='[DllImport(\"wininet.dll\")]public static extern bool InternetSetOption(IntPtr h,int o,IntPtr b,int l);';" +
+  '$sig=\'[DllImport("wininet.dll")]public static extern bool InternetSetOption(IntPtr h,int o,IntPtr b,int l);\';' +
   '$t=Add-Type -MemberDefinition $sig -Name W -Namespace P -PassThru;' +
   '[void]$t::InternetSetOption([IntPtr]::Zero,39,[IntPtr]::Zero,0);' +
   '[void]$t::InternetSetOption([IntPtr]::Zero,37,[IntPtr]::Zero,0)'
 
-export { WININET_KEY, PS_REFRESH }
+export { PS_REFRESH, WININET_KEY }
 
 function runPsRefresh(): Promise<void> {
   // best effort — browsers re-read proxy settings on their own schedule;
@@ -26,7 +26,7 @@ function runPsRefresh(): Promise<void> {
 
 function reg(args: string[]): Promise<void> {
   return new Promise((resolve, reject) =>
-    execFile('reg', args, (err) => (err ? reject(err) : resolve()))
+    execFile('reg', args, (err) => (err ? reject(err) : resolve())),
   )
 }
 
@@ -36,12 +36,17 @@ export async function setSystemProxy(enable: boolean): Promise<void> {
     return
   }
   if (enable) {
+    await reg(['add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '1', '/f'])
     await reg([
-      'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '1', '/f',
-    ])
-    await reg([
-      'add', WININET_KEY, '/v', 'ProxyServer', '/t', 'REG_SZ', '/d',
-      `127.0.0.1:${state.mixedPort}`, '/f',
+      'add',
+      WININET_KEY,
+      '/v',
+      'ProxyServer',
+      '/t',
+      'REG_SZ',
+      '/d',
+      `127.0.0.1:${state.mixedPort}`,
+      '/f',
     ])
     await reg(['add', WININET_KEY, '/v', 'ProxyOverride', '/t', 'REG_SZ', '/d', BYPASS, '/f'])
   } else {
@@ -55,16 +60,14 @@ export async function setSystemProxy(enable: boolean): Promise<void> {
         (err, stdout) => {
           const m = stdout ? /ProxyServer\s+REG_SZ\s+(\S+)/.exec(String(stdout)) : null
           resolve(err || !m ? '' : m[1])
-        }
+        },
       )
     })
     if (current && current !== `127.0.0.1:${state.mixedPort}`) {
       state.sysProxy = false
       return
     }
-    await reg([
-      'add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '0', '/f',
-    ])
+    await reg(['add', WININET_KEY, '/v', 'ProxyEnable', '/t', 'REG_DWORD', '/d', '0', '/f'])
   }
   await runPsRefresh()
   state.sysProxy = enable

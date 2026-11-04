@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test"
-import { capturePlaybackPosition, createPreviewRefreshGuard, playbackTime } from "../src/lib/preview-state"
+import {
+  capturePlaybackPosition,
+  createPreviewRefreshGuard,
+  playbackTime,
+} from "../src/lib/preview-state"
 
 describe("preview recovery", () => {
   test("a codec failure cannot continually fetch new preview URLs", () => {

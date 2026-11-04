@@ -1,28 +1,44 @@
 import { describe, expect, test } from 'bun:test'
-import { isBlockedAddress } from '../src/rss'
 import { RateLimiter, trustedClientIp } from '../src/index'
+import { isBlockedAddress } from '../src/rss'
 
 describe('isBlockedAddress (RSS SSRF guard)', () => {
   const blocked = [
-    '127.0.0.1', '127.255.255.255',      // loopback
-    '10.0.0.1', '10.255.255.255',        // 10/8
-    '172.16.0.1', '172.31.255.255',      // 172.16/12
-    '192.168.1.1', '192.168.0.255',      // 192.168/16
-    '169.254.169.254', '169.254.0.1',    // link-local + cloud metadata
-    '100.64.0.1', '100.127.255.255',     // CGNAT
-    '198.18.0.1', '198.19.255.255',      // benchmark
-    '0.0.0.0',                            // "this host"
-    '224.0.0.1', '255.255.255.255',      // multicast + reserved
-    '::', '::1',                          // v6 unspecified + loopback
-    '::ffff:127.0.0.1', '::ffff:10.0.0.1', // v4-mapped
-    'fe80::1', 'fc00::1', 'fd12:3456::1', 'ff02::1', // link-local / ULA / multicast
+    '127.0.0.1',
+    '127.255.255.255', // loopback
+    '10.0.0.1',
+    '10.255.255.255', // 10/8
+    '172.16.0.1',
+    '172.31.255.255', // 172.16/12
+    '192.168.1.1',
+    '192.168.0.255', // 192.168/16
+    '169.254.169.254',
+    '169.254.0.1', // link-local + cloud metadata
+    '100.64.0.1',
+    '100.127.255.255', // CGNAT
+    '198.18.0.1',
+    '198.19.255.255', // benchmark
+    '0.0.0.0', // "this host"
+    '224.0.0.1',
+    '255.255.255.255', // multicast + reserved
+    '::',
+    '::1', // v6 unspecified + loopback
+    '::ffff:127.0.0.1',
+    '::ffff:10.0.0.1', // v4-mapped
+    'fe80::1',
+    'fc00::1',
+    'fd12:3456::1',
+    'ff02::1', // link-local / ULA / multicast
   ]
   const allowed = [
-    '8.8.8.8', '1.1.1.1', '93.184.216.34',
-    '172.32.0.1',                          // just outside 172.16/12
-    '100.128.0.1',                         // just outside CGNAT
-    '169.255.0.1',                         // just outside link-local
-    '2606:4700:4700::1111', '2a00:1450:4001::1',
+    '8.8.8.8',
+    '1.1.1.1',
+    '93.184.216.34',
+    '172.32.0.1', // just outside 172.16/12
+    '100.128.0.1', // just outside CGNAT
+    '169.255.0.1', // just outside link-local
+    '2606:4700:4700::1111',
+    '2a00:1450:4001::1',
   ]
   for (const ip of blocked) test(`blocks ${ip}`, () => expect(isBlockedAddress(ip)).toBe(true))
   for (const ip of allowed) test(`allows ${ip}`, () => expect(isBlockedAddress(ip)).toBe(false))
@@ -56,7 +72,7 @@ describe('trustedClientIp (X-Real-IP validation)', () => {
 
 describe('RateLimiter capacity bound', () => {
   test('evicts the oldest entry instead of growing without limit', () => {
-    let now = 1_000_000
+    const now = 1_000_000
     const limiter = new RateLimiter(() => now)
     // key "first" hits its limit of 1 inside a long window
     expect(limiter.allow('first', 1, 60_000)).toBe(true)

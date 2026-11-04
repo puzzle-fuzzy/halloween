@@ -34,7 +34,7 @@ export function binaryPath(): string {
   const prod = path.join(process.resourcesPath ?? '', 'mihomo.exe')
   if (fs.existsSync(prod)) return prod
   throw new Error(
-    'mihomo.exe not found — run "bun scripts/ensure-mihomo.mjs" in packages/desktop (see resources/README.md)'
+    'mihomo.exe not found — run "bun scripts/ensure-mihomo.mjs" in packages/desktop (see resources/README.md)',
   )
 }
 

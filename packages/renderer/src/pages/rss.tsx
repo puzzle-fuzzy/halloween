@@ -1,11 +1,9 @@
-import * as React from "react"
-import { IconExternalLink, IconRefresh } from "@tabler/icons-react"
-
-import { useCloudAuth } from "@/components/cloud/auth"
-import { useI18n } from "@/i18n"
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Card, CardContent } from "@halloween/ui/card"
+import { IconExternalLink, IconRefresh } from "@tabler/icons-react"
+import * as React from "react"
+import { useCloudAuth } from "@/components/cloud/auth"
 import {
   Select,
   SelectContent,
@@ -13,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useI18n } from "@/i18n"
 import { formatTime } from "@/lib/format"
 import type { RssItem } from "@/types/global"
 
@@ -124,58 +123,60 @@ export default function RssPage() {
 
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-scroll">
-        {loading && items.length === 0 ? (
-          <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
-            <IconRefresh className="size-4 animate-spin" />
-            {t.common.loading}
-          </div>
-        ) : error && items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <p className="text-destructive text-sm">{error}</p>
-            <Button variant="outline" size="sm" onClick={() => void load()}>
-              {t.common.retry}
-            </Button>
-          </div>
-        ) : visible.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3">
-            <p className="text-muted-foreground text-sm">
-              {t.rss.empty}
-            </p>
-            <Button variant="outline" size="sm" onClick={() => window.open(ADMIN_RSS_URL, "_blank")}>
-              <IconExternalLink />
-              {t.common.openAdminConsole}
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 pb-1">
-            {visible.map((item) => (
-              <Card key={item.id} className="gap-0 py-4">
-                <CardContent className="flex flex-col gap-1.5 px-4">
-                  <div className="flex items-start gap-3">
-                    <button
-                      className="min-w-0 flex-1 text-left"
-                      onClick={() => openLink(item.link)}
-                      disabled={!item.link}
-                    >
-                      <span className="font-medium hover:underline">
-                        {item.title || item.link}
+          {loading && items.length === 0 ? (
+            <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
+              <IconRefresh className="size-4 animate-spin" />
+              {t.common.loading}
+            </div>
+          ) : error && items.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <p className="text-destructive text-sm">{error}</p>
+              <Button variant="outline" size="sm" onClick={() => void load()}>
+                {t.common.retry}
+              </Button>
+            </div>
+          ) : visible.length === 0 ? (
+            <div className="flex h-full flex-col items-center justify-center gap-3">
+              <p className="text-muted-foreground text-sm">{t.rss.empty}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(ADMIN_RSS_URL, "_blank")}
+              >
+                <IconExternalLink />
+                {t.common.openAdminConsole}
+              </Button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-3 pb-1">
+              {visible.map((item) => (
+                <Card key={item.id} className="gap-0 py-4">
+                  <CardContent className="flex flex-col gap-1.5 px-4">
+                    <div className="flex items-start gap-3">
+                      <button
+                        className="min-w-0 flex-1 text-left"
+                        onClick={() => openLink(item.link)}
+                        disabled={!item.link}
+                      >
+                        <span className="font-medium hover:underline">
+                          {item.title || item.link}
+                        </span>
+                      </button>
+                      <Badge variant="secondary" className="max-w-40 shrink-0 truncate">
+                        {item.feedTitle}
+                      </Badge>
+                      <span className="text-muted-foreground shrink-0 text-xs">
+                        {formatTime(item.publishedAt)}
                       </span>
-                    </button>
-                    <Badge variant="secondary" className="max-w-40 shrink-0 truncate">
-                      {item.feedTitle}
-                    </Badge>
-                    <span className="text-muted-foreground shrink-0 text-xs">
-                      {formatTime(item.publishedAt)}
-                    </span>
-                  </div>
-                  {item.summary && (
-                    <p className="text-muted-foreground line-clamp-2 text-sm">{item.summary}</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                    </div>
+                    {item.summary && (
+                      <p className="text-muted-foreground line-clamp-2 text-sm">{item.summary}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

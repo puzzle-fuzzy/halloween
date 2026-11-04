@@ -1,5 +1,3 @@
-import { Link, useLocation } from "react-router-dom"
-
 import {
   Sidebar,
   SidebarContent,
@@ -11,11 +9,18 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@halloween/ui/sidebar"
-import { IconBucket, IconDevices, IconGauge, IconLogout, IconRss, IconShieldHalf, IconUserCircle } from "@tabler/icons-react"
-import { adminApi } from "@/lib/api"
+import {
+  IconBucket,
+  IconDevices,
+  IconGauge,
+  IconLogout,
+  IconRss,
+  IconShieldHalf,
+  IconUserCircle,
+} from "@tabler/icons-react"
+import { Link, useLocation } from "react-router-dom"
 import { useI18n } from "@/i18n"
-
-
+import { adminApi } from "@/lib/api"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const location = useLocation()
@@ -30,9 +35,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const logout = async () => {
     try {
-      await adminApi('/logout', { method: 'POST' })
+      await adminApi("/logout", { method: "POST" })
     } finally {
-      window.location.hash = '#/login'
+      window.location.hash = "#/login"
     }
   }
 

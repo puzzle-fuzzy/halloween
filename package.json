@@ -18,7 +18,7 @@
     "dev:server": "bun run --filter @halloween/server dev",
     "dev:admin": "bun run --filter @halloween/admin dev",
     "test": "bun test packages",
-    "check": "bun run test && bun run typecheck && bun run build",
+    "check": "bun run lint && bun run typecheck && bun run build && bun test packages",
     "dist:mac": "bun run build && bun run --filter @halloween/desktop dist:mac",
     "dist:win": "bun run build && bun run --filter @halloween/desktop dist:win",
     "setup:local": "bun scripts/setup-local.ts",
@@ -27,13 +27,16 @@
     "test:dev-proxy": "bun scripts/dev-proxy-smoke.ts",
     "test:media": "bun scripts/media-smoke.ts",
     "test:recovery": "bun scripts/recovery-smoke.ts",
-    "test:fetch-restic": "bun scripts/fetch-test-restic.ts"
+    "test:fetch-restic": "bun scripts/fetch-test-restic.ts",
+    "lint": "biome check .",
+    "format": "biome check --write ."
   },
   "packageManager": "bun@1.4.0",
   "engines": {
     "bun": ">=1.4.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.6.4",
     "@types/bun": "^1.4.4",
     "typescript": "^7.0.2"
   }

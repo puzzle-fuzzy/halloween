@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto'
-import { ipcMain } from 'electron'
 import type { BrowserWindow } from 'electron'
-import { uniqueNames } from '../proxy-parse'
+import { ipcMain } from 'electron'
 import type { ClashProxy } from '../proxy-parse'
-import { cachedNodeCount, config, loadConfig, saveConfig } from './config'
+import { uniqueNames } from '../proxy-parse'
 import type { ProxySubscription } from './config'
-import { fetchSubscription, collectProxies } from './subscription'
-import { installTunTask, taskExists } from './tun'
-import { setSystemProxy } from './sysproxy'
+import { cachedNodeCount, config, loadConfig, saveConfig } from './config'
 import { coreApi, GROUP, startCore, stopCore } from './core'
-import { setWindowProvider } from './traffic'
 import { state } from './state'
+import { collectProxies, fetchSubscription } from './subscription'
+import { setSystemProxy } from './sysproxy'
+import { setWindowProvider } from './traffic'
+import { installTunTask, taskExists } from './tun'
 
 const DELAY_TEST_URL = 'https://www.gstatic.com/generate_204'
 /** system proxy (registry) and TUN (schtasks elevation) are windows-only machinery */
@@ -28,9 +28,9 @@ function publicState() {
     subscriptions: config.subscriptions,
     nodeCount: cachedNodeCount(),
     /** node names from the last successful fetch — shown before the core runs */
-    cachedNodes: uniqueNames(
-      Object.values(config.subNodes).flat() as ClashProxy[]
-    ).map((p) => p.name),
+    cachedNodes: uniqueNames(Object.values(config.subNodes).flat() as ClashProxy[]).map(
+      (p) => p.name,
+    ),
     lastError: state.lastError,
   }
 }
@@ -192,7 +192,7 @@ export function registerProxyHandlers(getWindow: () => BrowserWindow | null): vo
   ipcMain.handle('proxy:test-all', async () => {
     // one call tests every node in the group
     await coreApi(
-      `/group/${encodeURIComponent(GROUP)}/delay?url=${encodeURIComponent(DELAY_TEST_URL)}&timeout=5000`
+      `/group/${encodeURIComponent(GROUP)}/delay?url=${encodeURIComponent(DELAY_TEST_URL)}&timeout=5000`,
     )
     return readNodes()
   })

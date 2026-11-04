@@ -61,12 +61,12 @@ restic 自己管理加密、去重和仓库快照。应用清单用于额外核�
 
 桌面“备份”页对应四种异步作业：
 
-| 操作 | 引擎动作 | 成功含义 |
-| --- | --- | --- |
-| 立即备份 | `restic backup`，专用应用 tag | 引擎返回成功且确认完整快照 ID；这不等于已执行完整性检查 |
-| 刷新快照 | `restic snapshots --tag halloween-personal-cloud-v1` | 更新当前仓库的应用快照缓存 |
-| 完整性检查 | `restic check --read-data` | 独立读取并检查仓库结构和全部数据 |
-| 恢复验证 | `restic restore <id> --verify`，再核对 SHA-256 清单 | 指定快照能恢复到独立目录且清单一致 |
+| 操作       | 引擎动作                                             | 成功含义                                                |
+| ---------- | ---------------------------------------------------- | ------------------------------------------------------- |
+| 立即备份   | `restic backup`，专用应用 tag                        | 引擎返回成功且确认完整快照 ID；这不等于已执行完整性检查 |
+| 刷新快照   | `restic snapshots --tag halloween-personal-cloud-v1` | 更新当前仓库的应用快照缓存                              |
+| 完整性检查 | `restic check --read-data`                           | 独立读取并检查仓库结构和全部数据                        |
+| 恢复验证   | `restic restore <id> --verify`，再核对 SHA-256 清单  | 指定快照能恢复到独立目录且清单一致                      |
 
 “完整性检查”会读取整个仓库的数据，对远端仓库可能产生相应时间和流量。这个强度来自 [restic 完整性检查文档](https://restic.readthedocs.io/en/stable/045_working_with_repos.html#checking-integrity-and-consistency)。
 

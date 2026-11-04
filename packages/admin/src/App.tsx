@@ -1,10 +1,9 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
-
-import { AppSidebar } from "@/components/app-sidebar"
-import { SiteHeader } from "@/components/site-header"
 import { SidebarInset, SidebarProvider } from "@halloween/ui/sidebar"
 import { TooltipProvider } from "@halloween/ui/tooltip"
-import { LanguageProvider, LangSwitch } from "@/i18n"
+import { Navigate, Outlet, Route, Routes } from "react-router-dom"
+import { AppSidebar } from "@/components/app-sidebar"
+import { SiteHeader } from "@/components/site-header"
+import { LangSwitch, LanguageProvider } from "@/i18n"
 import DevicePage from "@/pages/device"
 import LoginPage from "@/pages/login"
 import OssAccountsPage from "@/pages/oss-accounts"
@@ -39,19 +38,19 @@ function Shell() {
 export default function App() {
   return (
     <LanguageProvider>
-    <LangSwitch />
-    <Routes>
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/device/:code" element={<DevicePage />} />
-      <Route path="/" element={<Shell />}>
-        <Route index element={<OverviewPage />} />
-        <Route path="tokens" element={<TokensPage />} />
-        <Route path="oss-accounts" element={<OssAccountsPage />} />
-        <Route path="rss" element={<RssPage />} />
-        <Route path="profile" element={<ProfilePage />} />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      <LangSwitch />
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/device/:code" element={<DevicePage />} />
+        <Route path="/" element={<Shell />}>
+          <Route index element={<OverviewPage />} />
+          <Route path="tokens" element={<TokensPage />} />
+          <Route path="oss-accounts" element={<OssAccountsPage />} />
+          <Route path="rss" element={<RssPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </LanguageProvider>
   )
 }

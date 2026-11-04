@@ -1,26 +1,18 @@
-import * as React from "react"
+import { Sidebar, SidebarContent, SidebarFooter, SidebarHeader } from "@halloween/ui/sidebar"
 import {
+  IconArchive,
+  IconBucket,
   IconCloud,
   IconDashboard,
   IconInnerShadowTop,
-  IconBucket,
-  IconTrash,
-  IconRss,
   IconRocket,
-  IconArchive,
+  IconRss,
+  IconTrash,
 } from "@tabler/icons-react"
-
-import { useI18n } from "@/i18n"
+import type * as React from "react"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-} from "@halloween/ui/sidebar"
-
-
+import { useI18n } from "@/i18n"
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { t } = useI18n()
@@ -60,5 +52,3 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     </Sidebar>
   )
 }
-
-

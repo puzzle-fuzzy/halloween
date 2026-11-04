@@ -1,4 +1,4 @@
-import type { Dict } from './en'
+import type { Dict } from "./en"
 
 /** compile-time enforced to mirror en.ts key-for-key */
 export const zhCN: Dict = {

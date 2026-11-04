@@ -1,7 +1,3 @@
-import * as React from "react"
-import { useNavigate } from "react-router-dom"
-import { IconShieldHalf } from "@tabler/icons-react"
-
 import { Button } from "@halloween/ui/button"
 import {
   Card,
@@ -13,8 +9,11 @@ import {
 } from "@halloween/ui/card"
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
-import { adminApi } from "@/lib/api"
+import { IconShieldHalf } from "@tabler/icons-react"
+import * as React from "react"
+import { useNavigate } from "react-router-dom"
 import { useI18n } from "@/i18n"
+import { adminApi } from "@/lib/api"
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -28,10 +27,10 @@ export default function LoginPage() {
     setBusy(true)
     setError("")
     try {
-      await adminApi('/login', { method: 'POST', body: JSON.stringify({ password }) })
-      navigate('/', { replace: true })
+      await adminApi("/login", { method: "POST", body: JSON.stringify({ password }) })
+      navigate("/", { replace: true })
     } catch (e) {
-      setError(String(e).includes('wrong password') ? t.login.wrongPassword : String(e))
+      setError(String(e).includes("wrong password") ? t.login.wrongPassword : String(e))
     } finally {
       setBusy(false)
     }
@@ -56,7 +55,7 @@ export default function LoginPage() {
               autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && void submit()}
+              onKeyDown={(e) => e.key === "Enter" && void submit()}
             />
             {error && <p className="text-destructive text-sm">{error}</p>}
           </div>

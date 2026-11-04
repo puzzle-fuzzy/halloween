@@ -34,7 +34,12 @@ export async function startTrafficSampler(): Promise<void> {
         const s = line.trim()
         if (!s) continue
         try {
-          const t = JSON.parse(s) as { up: number; down: number; upTotal?: number; downTotal?: number }
+          const t = JSON.parse(s) as {
+            up: number
+            down: number
+            upTotal?: number
+            downTotal?: number
+          }
           getWin()?.webContents.send('proxy:traffic', {
             up: t.up ?? 0,
             down: t.down ?? 0,

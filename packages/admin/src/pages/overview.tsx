@@ -1,8 +1,4 @@
-import * as React from "react"
-import { format } from "date-fns"
-import prettyBytes from "pretty-bytes"
-import { Navigate } from "react-router-dom"
-
+import { Button } from "@halloween/ui/button"
 import {
   Card,
   CardContent,
@@ -12,24 +8,19 @@ import {
   CardTitle,
 } from "@halloween/ui/card"
 import { Skeleton } from "@halloween/ui/skeleton"
-import { Button } from "@halloween/ui/button"
-import { adminApi, checkSession } from "@/lib/api"
+import { format } from "date-fns"
+import prettyBytes from "pretty-bytes"
+import * as React from "react"
+import { Navigate } from "react-router-dom"
 import { useI18n } from "@/i18n"
+import { adminApi, checkSession } from "@/lib/api"
 
 interface Stats {
   storage: { total: number; available: number; used: number }
   devices: number
 }
 
-function StatCard({
-  title,
-  value,
-  hint,
-}: {
-  title: string
-  value: React.ReactNode
-  hint: string
-}) {
+function StatCard({ title, value, hint }: { title: string; value: React.ReactNode; hint: string }) {
   return (
     <Card className="@container/card">
       <CardHeader>
@@ -47,27 +38,39 @@ export default function OverviewPage() {
   const { t } = useI18n()
   const [authed, setAuthed] = React.useState<boolean | null>(null)
   const [stats, setStats] = React.useState<Stats | null>(null)
-  const [error, setError] = React.useState('')
+  const [error, setError] = React.useState("")
   const [attempt, setAttempt] = React.useState(0)
 
   React.useEffect(() => {
     const controller = new AbortController()
-    setError('')
+    setError("")
     void checkSession(controller.signal)
       .then(async (ok) => {
         if (controller.signal.aborted) return
         setAuthed(ok)
         if (ok) {
-          const result = await adminApi<Stats>('/stats', { signal: controller.signal })
+          const result = await adminApi<Stats>("/stats", { signal: controller.signal })
           if (!controller.signal.aborted) setStats(result)
         }
       })
-      .catch((e: unknown) => { if (!controller.signal.aborted) setError(String(e)) })
+      .catch((e: unknown) => {
+        if (!controller.signal.aborted) setError(String(e))
+      })
     return () => controller.abort()
-  }, [attempt])
+  }, [])
 
   if (authed === false) return <Navigate to="/login" replace />
-  if (error) return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6"><p role="alert" className="text-destructive text-sm">{error}</p><Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>{t.common.retry}</Button></div>
+  if (error)
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6">
+        <p role="alert" className="text-destructive text-sm">
+          {error}
+        </p>
+        <Button variant="outline" onClick={() => setAttempt((n) => n + 1)}>
+          {t.common.retry}
+        </Button>
+      </div>
+    )
   if (authed === null || !stats) {
     return (
       <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
@@ -93,21 +96,15 @@ export default function OverviewPage() {
           value={prettyBytes(stats.storage.available)}
           hint={t.overview.availableHint}
         />
-        <StatCard
-          title={t.overview.devices}
-          value={stats.devices}
-          hint={t.overview.devicesHint}
-        />
+        <StatCard title={t.overview.devices} value={stats.devices} hint={t.overview.devicesHint} />
       </div>
       <Card className="@container/card">
         <CardHeader>
           <CardTitle>{t.overview.yourStorage}</CardTitle>
-          <CardDescription>
-            {t.overview.manageHint}
-          </CardDescription>
+          <CardDescription>{t.overview.manageHint}</CardDescription>
         </CardHeader>
         <CardContent className="text-muted-foreground flex items-center gap-2 text-sm">
-          {format(new Date(), 'EEEE, MMM d yyyy')}
+          {format(new Date(), "EEEE, MMM d yyyy")}
         </CardContent>
       </Card>
     </div>

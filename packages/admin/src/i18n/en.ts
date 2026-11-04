@@ -38,7 +38,8 @@ export const en = {
     deviceLabel: "Device:",
     expired: "This request has expired. Start sign-in again in the app.",
     expiresAt: (time: string) => `Expires at ${time}`,
-    compareHint: "Compare this code with the code in the app before granting access to your files and OSS storage.",
+    compareHint:
+      "Compare this code with the code in the app before granting access to your files and OSS storage.",
     adminPassword: "Admin password",
     pleaseWait: "Please wait…",
     signInToReview: "Sign in to review request",
@@ -55,7 +56,8 @@ export const en = {
     devices: "Devices",
     devicesHint: "Authorized desktop devices",
     yourStorage: "Your storage",
-    manageHint: "Manage your authorized devices, OSS accounts and personal profile from the sidebar.",
+    manageHint:
+      "Manage your authorized devices, OSS accounts and personal profile from the sidebar.",
   },
   tokens: {
     description: "Devices authorized through browser sign-in. Revoking signs the device out.",
@@ -80,7 +82,8 @@ export const en = {
     deleteConfirm: (name: string) => `Delete account "${name}"?`,
   },
   rss: {
-    description: "RSS sources — the server refreshes them every 30 minutes and caches the items for the desktop app.",
+    description:
+      "RSS sources — the server refreshes them every 30 minutes and caches the items for the desktop app.",
     updated: (time: string) => `Updated ${time}`,
     items: (n: number) => `${n} items`,
     refreshNow: "Refresh Now",
@@ -112,6 +115,5 @@ export const en = {
     saved: "Saved",
   },
 }
-
 
 export type Dict = typeof en

@@ -1,26 +1,3 @@
-import * as React from "react"
-import { Link } from "react-router-dom"
-import {
-  IconArrowLeft,
-  IconChevronRight,
-  IconDots,
-  IconDownload,
-  IconFile,
-  IconFileZip,
-  IconFolder,
-  IconFolderPlus,
-  IconMusic,
-  IconPhoto,
-  IconRefresh,
-  IconUpload,
-  IconVideo,
-} from "@tabler/icons-react"
-import { toast } from "sonner"
-import { useDebounce } from "use-debounce"
-
-import { useCloudAuth } from "@/components/cloud/auth"
-import { useI18n } from "@/i18n"
-import { MediaPreview } from "@/components/cloud/media-preview"
 import { Button } from "@halloween/ui/button"
 import { Checkbox } from "@halloween/ui/checkbox"
 import {
@@ -37,16 +14,35 @@ import {
   DropdownMenuTrigger,
 } from "@halloween/ui/dropdown-menu"
 import { Input } from "@halloween/ui/input"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@halloween/ui/table"
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@halloween/ui/table"
+  IconArrowLeft,
+  IconChevronRight,
+  IconDots,
+  IconDownload,
+  IconFile,
+  IconFileZip,
+  IconFolder,
+  IconFolderPlus,
+  IconMusic,
+  IconPhoto,
+  IconRefresh,
+  IconUpload,
+  IconVideo,
+} from "@tabler/icons-react"
+import * as React from "react"
+import { Link } from "react-router-dom"
+import { toast } from "sonner"
+import { useDebounce } from "use-debounce"
+import { useCloudAuth } from "@/components/cloud/auth"
+import { MediaPreview } from "@/components/cloud/media-preview"
+import { useI18n } from "@/i18n"
+import {
+  createRequestTracker,
+  fileOperationError,
+  isTransferCancelled,
+} from "@/lib/file-operations"
 import { fileKind, formatBytes, formatTime } from "@/lib/format"
-import { createRequestTracker, fileOperationError, isTransferCancelled } from "@/lib/file-operations"
 import type { CloudEntry } from "@/types/global"
 
 function entryIcon(entry: CloudEntry) {
@@ -67,7 +63,15 @@ interface PromptState {
 }
 
 export default function CloudDrivePage() {
-  const { authed, login, error: authError, retry, authCode, signingIn, handleError } = useCloudAuth()
+  const {
+    authed,
+    login,
+    error: authError,
+    retry,
+    authCode,
+    signingIn,
+    handleError,
+  } = useCloudAuth()
   const { t } = useI18n()
   const cloud = window.electron?.cloud
   const [signInError, setSignInError] = React.useState("")
@@ -82,37 +86,50 @@ export default function CloudDrivePage() {
   const [searchQ] = useDebounce(searchInput, 300)
   const [dragOver, setDragOver] = React.useState(false)
   const [prompt, setPrompt] = React.useState<PromptState | null>(null)
-  const [preview, setPreview] = React.useState<{ entry: CloudEntry; url: string; scope: string } | null>(null)
+  const [preview, setPreview] = React.useState<{
+    entry: CloudEntry
+    url: string
+    scope: string
+  } | null>(null)
   const requests = React.useRef(createRequestTracker()).current
   const scope = `${currentPath}\0${searchInput}`
   const scopeRef = React.useRef(scope)
   scopeRef.current = scope
   const busy = loading || working
 
-  const reportError = React.useCallback((e: unknown) => {
-    if (isTransferCancelled(e)) { toast.info("Transfer cancelled"); return }
-    handleError(e)
-    toast.error(fileOperationError(e))
-  }, [handleError])
-
-  const load = React.useCallback(async (dir: string, query = "") => {
-    if (!cloud) return
-    const request = requests.start()
-    setLoading(true)
-    setError("")
-    setEntries([])
-    setSelected(new Set())
-    try {
-      const res = query.trim() ? await cloud.search(query.trim()) : await cloud.list(dir)
-      if (requests.isCurrent(request)) setEntries(res.entries)
-    } catch (e) {
-      if (!requests.isCurrent(request)) return
-      setError(fileOperationError(e))
+  const reportError = React.useCallback(
+    (e: unknown) => {
+      if (isTransferCancelled(e)) {
+        toast.info("Transfer cancelled")
+        return
+      }
       handleError(e)
-    } finally {
-      if (requests.isCurrent(request)) setLoading(false)
-    }
-  }, [cloud, requests, handleError])
+      toast.error(fileOperationError(e))
+    },
+    [handleError],
+  )
+
+  const load = React.useCallback(
+    async (dir: string, query = "") => {
+      if (!cloud) return
+      const request = requests.start()
+      setLoading(true)
+      setError("")
+      setEntries([])
+      setSelected(new Set())
+      try {
+        const res = query.trim() ? await cloud.search(query.trim()) : await cloud.list(dir)
+        if (requests.isCurrent(request)) setEntries(res.entries)
+      } catch (e) {
+        if (!requests.isCurrent(request)) return
+        setError(fileOperationError(e))
+        handleError(e)
+      } finally {
+        if (requests.isCurrent(request)) setLoading(false)
+      }
+    },
+    [cloud, requests, handleError],
+  )
 
   React.useEffect(() => {
     if (authed && searchQ === searchInput) void load(currentPath, searchQ)
@@ -150,8 +167,11 @@ export default function CloudDrivePage() {
       if (!uploaded?.length) return
       toast.success(t.cloud.uploadComplete)
       if (scopeRef.current === target) void load(currentPath, searchQ)
-    } catch (e) { reportError(e) }
-    finally { setWorking(false) }
+    } catch (e) {
+      reportError(e)
+    } finally {
+      setWorking(false)
+    }
   }
 
   const download = async (list: CloudEntry[]) => {
@@ -162,7 +182,9 @@ export default function CloudDrivePage() {
       if (!dir) return
       for (const file of files) await cloud.downloadTo(file.path, file.name, dir)
       toast.success(t.cloud.savedTo(dir))
-    } catch (e) { reportError(e) }
+    } catch (e) {
+      reportError(e)
+    }
   }
 
   const remove = async (list: CloudEntry[]) => {
@@ -182,18 +204,26 @@ export default function CloudDrivePage() {
         setDeleteNotice(t.cloud.partialMoveNotice(fileOperationError(e)))
         await load(currentPath, searchQ)
       }
-    } finally { setWorking(false) }
+    } finally {
+      setWorking(false)
+    }
   }
 
   const onEntryClick = (entry: CloudEntry) => {
     if (busy) return
-    if (entry.type === "dir") { navigate(entry.path); return }
+    if (entry.type === "dir") {
+      navigate(entry.path)
+      return
+    }
     const kind = fileKind(entry.name)
     if (kind === "image" || kind === "video" || kind === "audio") {
       const target = scope
-      void cloud?.fileUrl(entry.path).then((url) => {
-        if (scopeRef.current === target) setPreview({ entry, url, scope: target })
-      }).catch(reportError)
+      void cloud
+        ?.fileUrl(entry.path)
+        .then((url) => {
+          if (scopeRef.current === target) setPreview({ entry, url, scope: target })
+        })
+        .catch(reportError)
     } else void download([entry])
   }
 
@@ -208,29 +238,40 @@ export default function CloudDrivePage() {
     const target = scope
     setWorking(true)
     try {
-      if (prompt.mode === "mkdir") await cloud.mkdir(currentPath === "/" ? `/${value}` : `${currentPath}/${value}`)
+      if (prompt.mode === "mkdir")
+        await cloud.mkdir(currentPath === "/" ? `/${value}` : `${currentPath}/${value}`)
       else if (prompt.target) {
         const parent = prompt.target.path.slice(0, prompt.target.path.lastIndexOf("/")) || "/"
         await cloud.rename(prompt.target.path, parent === "/" ? `/${value}` : `${parent}/${value}`)
       }
-      if (scopeRef.current === target) { setPrompt(null); void load(currentPath, searchQ) }
-    } catch (e) { reportError(e) }
-    finally { setWorking(false) }
+      if (scopeRef.current === target) {
+        setPrompt(null)
+        void load(currentPath, searchQ)
+      }
+    } catch (e) {
+      reportError(e)
+    } finally {
+      setWorking(false)
+    }
   }
 
-  const toggle = (path: string) => setSelected((previous) => {
-    const next = new Set(previous)
-    if (next.has(path)) next.delete(path)
-    else next.add(path)
-    return next
-  })
+  const toggle = (path: string) =>
+    setSelected((previous) => {
+      const next = new Set(previous)
+      if (next.has(path)) next.delete(path)
+      else next.add(path)
+      return next
+    })
   const segments = currentPath.split("/").filter(Boolean)
   const allSelected = entries.length > 0 && entries.every((entry) => selected.has(entry.path))
   const startSignIn = async () => {
     if (signingIn) return
     setSignInError("")
-    try { await login() }
-    catch (e) { setSignInError(String(e)) }
+    try {
+      await login()
+    } catch (e) {
+      setSignInError(String(e))
+    }
   }
 
   if (authed === null || authed === false) {
@@ -238,8 +279,14 @@ export default function CloudDrivePage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         {authed === null ? (
           <div className="flex max-w-lg flex-col items-center gap-3 text-sm">
-            <p className={authError ? "text-destructive" : "text-muted-foreground"}>{authError || t.common.loading}</p>
-            {authError && <Button variant="outline" size="sm" onClick={() => void retry()}>{t.common.retryConnection}</Button>}
+            <p className={authError ? "text-destructive" : "text-muted-foreground"}>
+              {authError || t.common.loading}
+            </p>
+            {authError && (
+              <Button variant="outline" size="sm" onClick={() => void retry()}>
+                {t.common.retryConnection}
+              </Button>
+            )}
           </div>
         ) : (
           <>
@@ -248,14 +295,18 @@ export default function CloudDrivePage() {
               <p className="text-muted-foreground flex items-center gap-2 text-sm">
                 <IconRefresh className="size-4 animate-spin" />
                 {t.common.completeAuth}
-                {authCode && <span className="font-mono font-semibold">{t.cloud.code(authCode.userCode)}</span>}
+                {authCode && (
+                  <span className="font-mono font-semibold">{t.cloud.code(authCode.userCode)}</span>
+                )}
               </p>
             ) : (
               <Button size="sm" onClick={() => void startSignIn()}>
                 {t.common.signInBrowser}
               </Button>
             )}
-            {(signInError || authError) && <p className="text-destructive text-sm">{signInError || authError}</p>}
+            {(signInError || authError) && (
+              <p className="text-destructive text-sm">{signInError || authError}</p>
+            )}
           </>
         )}
       </div>
@@ -290,7 +341,7 @@ export default function CloudDrivePage() {
             aria-label={t.cloud.backAria}
             onClick={() =>
               navigate(
-                segments.slice(0, -1).length > 0 ? `/${segments.slice(0, -1).join("/")}` : "/"
+                segments.slice(0, -1).length > 0 ? `/${segments.slice(0, -1).join("/")}` : "/",
               )
             }
           >
@@ -326,7 +377,8 @@ export default function CloudDrivePage() {
           <Button
             variant="outline"
             size="sm"
-            disabled={busy} onClick={() => setPrompt({ mode: "mkdir", value: "" })}
+            disabled={busy}
+            onClick={() => setPrompt({ mode: "mkdir", value: "" })}
           >
             <IconFolderPlus />
             {t.cloud.newFolder}
@@ -338,12 +390,27 @@ export default function CloudDrivePage() {
         </div>
       </div>
 
-      {deleteNotice && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive flex-1 break-words">{deleteNotice}</p><Button asChild variant="outline" size="sm"><Link to="/trash">{t.cloud.viewTrash}</Link></Button></div>}
+      {deleteNotice && (
+        <div
+          role="alert"
+          className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"
+        >
+          <p className="text-destructive flex-1 break-words">{deleteNotice}</p>
+          <Button asChild variant="outline" size="sm">
+            <Link to="/trash">{t.cloud.viewTrash}</Link>
+          </Button>
+        </div>
+      )}
 
       {selected.size > 0 && (
         <div className="bg-muted/50 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
           {t.common.selected(selected.size)}
-          <Button variant="outline" size="sm" disabled={busy} onClick={() => void download(selectedEntries)}>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => void download(selectedEntries)}
+          >
             <IconDownload />
             {t.cloud.download}
           </Button>
@@ -351,11 +418,17 @@ export default function CloudDrivePage() {
             variant="outline"
             size="sm"
             className="text-destructive hover:text-destructive"
-            disabled={busy} onClick={() => void remove(selectedEntries)}
+            disabled={busy}
+            onClick={() => void remove(selectedEntries)}
           >
             {t.cloud.delete}
           </Button>
-          <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setSelected(new Set())}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto"
+            onClick={() => setSelected(new Set())}
+          >
             {t.cloud.clear}
           </Button>
         </div>
@@ -444,14 +517,19 @@ export default function CloudDrivePage() {
                               {t.cloud.download}
                             </DropdownMenuItem>
                           )}
-                          <DropdownMenuItem disabled={busy}
+                          <DropdownMenuItem
+                            disabled={busy}
                             onClick={() =>
                               setPrompt({ mode: "rename", value: entry.name, target: entry })
                             }
                           >
                             {t.cloud.rename}
                           </DropdownMenuItem>
-                          <DropdownMenuItem disabled={busy} variant="destructive" onClick={() => void remove([entry])}>
+                          <DropdownMenuItem
+                            disabled={busy}
+                            variant="destructive"
+                            onClick={() => void remove([entry])}
+                          >
                             {t.cloud.delete}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
@@ -470,11 +548,12 @@ export default function CloudDrivePage() {
         )}
       </div>
 
-
       <Dialog open={prompt !== null} onOpenChange={(o) => !o && !working && setPrompt(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{prompt?.mode === "mkdir" ? t.cloud.newFolder : t.cloud.rename}</DialogTitle>
+            <DialogTitle>
+              {prompt?.mode === "mkdir" ? t.cloud.newFolder : t.cloud.rename}
+            </DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
@@ -501,23 +580,28 @@ export default function CloudDrivePage() {
           <DialogHeader>
             <DialogTitle className="truncate pr-8">{preview?.entry.name}</DialogTitle>
           </DialogHeader>
-          {preview && <MediaPreview
-            key={preview.entry.path}
-            name={preview.entry.name}
-            url={preview.url}
-            refreshUrl={async () => {
-              if (!cloud || scopeRef.current !== preview.scope) throw new Error(t.cloud.previewGone)
-              return cloud.fileUrl(preview.entry.path)
-            }}
-            onUrlChange={(url) =>
-              setPreview((current) =>
-                current && current.entry.path === preview.entry.path && current.scope === preview.scope
-                  ? { ...current, url }
-                  : current
-              )
-            }
-            onRefreshError={handleError}
-          />}
+          {preview && (
+            <MediaPreview
+              key={preview.entry.path}
+              name={preview.entry.name}
+              url={preview.url}
+              refreshUrl={async () => {
+                if (!cloud || scopeRef.current !== preview.scope)
+                  throw new Error(t.cloud.previewGone)
+                return cloud.fileUrl(preview.entry.path)
+              }}
+              onUrlChange={(url) =>
+                setPreview((current) =>
+                  current &&
+                  current.entry.path === preview.entry.path &&
+                  current.scope === preview.scope
+                    ? { ...current, url }
+                    : current,
+                )
+              }
+              onRefreshError={handleError}
+            />
+          )}
           {preview && (
             <DialogFooter>
               <Button variant="outline" onClick={() => void download([preview.entry])}>

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react"
-
-import { useI18n } from "@/i18n"
 import { IconCopy, IconMinus, IconSquare, IconX } from "@tabler/icons-react"
+import { useEffect, useState } from "react"
+import { useI18n } from "@/i18n"
 
 export function WindowControls() {
   const api = window.electron?.window
@@ -10,7 +9,7 @@ export function WindowControls() {
 
   useEffect(() => {
     if (!api) return
-    let mounted = true
+    const mounted = true
     api.isMaximized().then((value) => {
       if (mounted) setMaximized(value)
     })
@@ -41,11 +40,7 @@ export function WindowControls() {
         className={button}
         onClick={() => api.toggleMaximize()}
       >
-        {maximized ? (
-          <IconCopy className="size-3.5" />
-        ) : (
-          <IconSquare className="size-3.5" />
-        )}
+        {maximized ? <IconCopy className="size-3.5" /> : <IconSquare className="size-3.5" />}
       </button>
       <button
         type="button"

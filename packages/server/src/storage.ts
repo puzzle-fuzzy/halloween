@@ -1,9 +1,14 @@
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { randomUUID } from 'node:crypto'
 
 export class HTTPError extends Error {
-  constructor(public status: number, message: string) { super(message) }
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message)
+  }
 }
 
 /** fsync a directory so a preceding rename survives a crash.
@@ -40,7 +45,11 @@ export async function atomicJson(file: string, value: unknown): Promise<void> {
   }
 }
 
-export async function readJson<T>(file: string, parse: (raw: unknown) => T, fallback: T): Promise<T> {
+export async function readJson<T>(
+  file: string,
+  parse: (raw: unknown) => T,
+  fallback: T,
+): Promise<T> {
   let raw: string
   try {
     const stat = await fs.lstat(file)
@@ -51,11 +60,19 @@ export async function readJson<T>(file: string, parse: (raw: unknown) => T, fall
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return fallback
     throw new Error(`Cannot read state ${file}`, { cause: error })
   }
-  try { return parse(JSON.parse(raw)) }
-  catch (error) { throw new Error(`Invalid state ${file}; restore a valid backup before starting`, { cause: error }) }
+  try {
+    return parse(JSON.parse(raw))
+  } catch (error) {
+    throw new Error(`Invalid state ${file}; restore a valid backup before starting`, {
+      cause: error,
+    })
+  }
 }
 
-export async function initializeRoots(dataRoot: string, stateRoot: string): Promise<{ dataRoot: string; stateRoot: string }> {
+export async function initializeRoots(
+  dataRoot: string,
+  stateRoot: string,
+): Promise<{ dataRoot: string; stateRoot: string }> {
   await fs.mkdir(dataRoot, { recursive: true, mode: 0o700 })
   await fs.mkdir(stateRoot, { recursive: true, mode: 0o700 })
   const data = await fs.realpath(dataRoot)
@@ -68,23 +85,38 @@ export async function initializeRoots(dataRoot: string, stateRoot: string): Prom
 }
 
 /** Validate before migration, and never silently replace an existing state file. */
-export async function migrateState<T>(dataRoot: string, stateRoot: string, legacyName: string, name: string, parse: (raw: unknown) => T, fallback: T): Promise<T> {
+export async function migrateState<T>(
+  dataRoot: string,
+  stateRoot: string,
+  legacyName: string,
+  name: string,
+  parse: (raw: unknown) => T,
+  fallback: T,
+): Promise<T> {
   const legacy = path.join(dataRoot, legacyName)
   const target = path.join(stateRoot, name)
-  const oldExists = await fs.lstat(legacy).then(() => true, (e: NodeJS.ErrnoException) => {
-    if (e.code === 'ENOENT') return false
-    throw e
-  })
-  const targetExists = await fs.lstat(target).then(() => true, (e: NodeJS.ErrnoException) => {
-    if (e.code === 'ENOENT') return false
-    throw e
-  })
+  const oldExists = await fs.lstat(legacy).then(
+    () => true,
+    (e: NodeJS.ErrnoException) => {
+      if (e.code === 'ENOENT') return false
+      throw e
+    },
+  )
+  const targetExists = await fs.lstat(target).then(
+    () => true,
+    (e: NodeJS.ErrnoException) => {
+      if (e.code === 'ENOENT') return false
+      throw e
+    },
+  )
   if (oldExists) {
     const old = await readJson(legacy, parse, fallback)
     if (targetExists) {
       const current = await readJson(target, parse, fallback)
       if (JSON.stringify(old) !== JSON.stringify(current)) {
-        throw new Error(`Both ${legacy} and ${target} exist with different contents; reconcile them before starting`)
+        throw new Error(
+          `Both ${legacy} and ${target} exist with different contents; reconcile them before starting`,
+        )
       }
     } else {
       await atomicJson(target, old)

@@ -1,6 +1,3 @@
-import * as React from "react"
-import { IconPencil, IconPlus, IconTrash } from "@tabler/icons-react"
-
 import { Button } from "@halloween/ui/button"
 import {
   Dialog,
@@ -11,16 +8,11 @@ import {
 } from "@halloween/ui/dialog"
 import { Input } from "@halloween/ui/input"
 import { Label } from "@halloween/ui/label"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@halloween/ui/table"
-import { adminApi } from "@/lib/api"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@halloween/ui/table"
+import { IconPencil, IconPlus, IconTrash } from "@tabler/icons-react"
+import * as React from "react"
 import { useI18n } from "@/i18n"
+import { adminApi } from "@/lib/api"
 
 interface Account {
   id: string
@@ -55,8 +47,8 @@ export default function OssAccountsPage() {
 
   const load = React.useCallback(async () => {
     try {
-      setLoadError('')
-      const res = await adminApi<{ accounts: Account[] }>('/oss-accounts')
+      setLoadError("")
+      const res = await adminApi<{ accounts: Account[] }>("/oss-accounts")
       setAccounts(res.accounts)
     } catch (e) {
       setLoadError(String(e))
@@ -80,9 +72,9 @@ export default function OssAccountsPage() {
     }
     try {
       if (dialog.mode === "create") {
-        await adminApi('/oss-accounts', { method: 'POST', body: JSON.stringify(body) })
+        await adminApi("/oss-accounts", { method: "POST", body: JSON.stringify(body) })
       } else {
-        await adminApi('/oss-accounts/update', { method: 'POST', body: JSON.stringify(body) })
+        await adminApi("/oss-accounts/update", { method: "POST", body: JSON.stringify(body) })
       }
       setDialog(null)
       void load()
@@ -98,8 +90,8 @@ export default function OssAccountsPage() {
     if (!window.confirm(t.oss.deleteConfirm(account.name))) return
     setBusy(true)
     try {
-      await adminApi('/oss-accounts/delete', {
-        method: 'POST',
+      await adminApi("/oss-accounts/delete", {
+        method: "POST",
         body: JSON.stringify({ id: account.id }),
       })
       await load()
@@ -110,25 +102,39 @@ export default function OssAccountsPage() {
     }
   }
 
-  const fields: { key: keyof DialogState; label: string; placeholder: string; secret?: boolean }[] = [
-    { key: 'name', label: t.common.name, placeholder: t.oss.namePlaceholder },
-    { key: 'region', label: t.oss.region, placeholder: t.oss.regionPlaceholder },
-    { key: 'accessKeyId', label: t.oss.accessKeyId, placeholder: 'LTAI…' },
-    { key: 'accessKeySecret', label: t.oss.accessKeySecret, placeholder: '', secret: true },
-  ]
+  const fields: { key: keyof DialogState; label: string; placeholder: string; secret?: boolean }[] =
+    [
+      { key: "name", label: t.common.name, placeholder: t.oss.namePlaceholder },
+      { key: "region", label: t.oss.region, placeholder: t.oss.regionPlaceholder },
+      { key: "accessKeyId", label: t.oss.accessKeyId, placeholder: "LTAI…" },
+      { key: "accessKeySecret", label: t.oss.accessKeySecret, placeholder: "", secret: true },
+    ]
 
   return (
     <div className="@container/main flex flex-1 flex-col gap-4 px-4 py-4 md:px-6">
       <div className="flex items-center">
-        <p className="text-muted-foreground text-sm">
-          {t.oss.description}
-        </p>
-        <Button size="sm" className="ml-auto" disabled={busy} onClick={() => { setError(''); setDialog({ ...emptyDialog }) }}>
+        <p className="text-muted-foreground text-sm">{t.oss.description}</p>
+        <Button
+          size="sm"
+          className="ml-auto"
+          disabled={busy}
+          onClick={() => {
+            setError("")
+            setDialog({ ...emptyDialog })
+          }}
+        >
           <IconPlus />
           {t.oss.addAccount}
         </Button>
       </div>
-      {loadError && <div role="alert" className="flex items-center justify-between gap-4 text-sm"><p className="text-destructive">{loadError}</p><Button variant="outline" onClick={() => void load()}>{t.common.retry}</Button></div>}
+      {loadError && (
+        <div role="alert" className="flex items-center justify-between gap-4 text-sm">
+          <p className="text-destructive">{loadError}</p>
+          <Button variant="outline" onClick={() => void load()}>
+            {t.common.retry}
+          </Button>
+        </div>
+      )}
       <div className="flex-1 overflow-hidden rounded-lg border">
         {accounts === null ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
@@ -162,14 +168,14 @@ export default function OssAccountsPage() {
                           aria-label={t.common.edit}
                           disabled={busy}
                           onClick={() => {
-                            setError('')
+                            setError("")
                             setDialog({
-                              mode: 'edit',
+                              mode: "edit",
                               id: account.id,
                               name: account.name,
                               region: account.region,
-                              accessKeyId: '',
-                              accessKeySecret: '',
+                              accessKeyId: "",
+                              accessKeySecret: "",
                             })
                           }}
                         >
@@ -198,23 +204,23 @@ export default function OssAccountsPage() {
       <Dialog open={dialog !== null} onOpenChange={(o) => !o && !busy && setDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{dialog?.mode === 'create' ? t.oss.addTitle : t.oss.editTitle}</DialogTitle>
+            <DialogTitle>
+              {dialog?.mode === "create" ? t.oss.addTitle : t.oss.editTitle}
+            </DialogTitle>
           </DialogHeader>
           <fieldset disabled={busy} className="flex flex-col gap-4">
             {fields.map((f) => (
               <div key={f.key} className="flex flex-col gap-2">
                 <Label htmlFor={`oss-${f.key}`}>
                   {f.label}
-                  {dialog?.mode === 'edit' && f.secret ? t.oss.secretKeep : ''}
+                  {dialog?.mode === "edit" && f.secret ? t.oss.secretKeep : ""}
                 </Label>
                 <Input
                   id={`oss-${f.key}`}
-                  type={f.secret ? 'password' : 'text'}
+                  type={f.secret ? "password" : "text"}
                   placeholder={f.placeholder}
-                  value={String(dialog?.[f.key] ?? '')}
-                  onChange={(e) =>
-                    dialog && setDialog({ ...dialog, [f.key]: e.target.value })
-                  }
+                  value={String(dialog?.[f.key] ?? "")}
+                  onChange={(e) => dialog && setDialog({ ...dialog, [f.key]: e.target.value })}
                 />
               </div>
             ))}
@@ -230,11 +236,11 @@ export default function OssAccountsPage() {
                 busy ||
                 !dialog?.name.trim() ||
                 !dialog?.region.trim() ||
-                (dialog.mode === 'create' &&
+                (dialog.mode === "create" &&
                   (!dialog.accessKeyId.trim() || !dialog.accessKeySecret.trim()))
               }
             >
-              {busy ? t.common.saving : dialog?.mode === 'create' ? t.common.add : t.common.save}
+              {busy ? t.common.saving : dialog?.mode === "create" ? t.common.add : t.common.save}
             </Button>
           </DialogFooter>
         </DialogContent>
