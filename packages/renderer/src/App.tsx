@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/sonner"
 
 import { AppSidebar } from "@/components/app-sidebar"
 import { CloudAuthProvider } from "@/components/cloud/auth"
+import { LanguageProvider } from "@/i18n"
 import { TransferPanel } from "@/components/cloud/transfer-panel"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { SiteHeader } from "@/components/site-header"
@@ -20,6 +21,7 @@ const BackupsPage = lazy(() => import("@/pages/backups"))
 
 export default function App() {
   return (
+    <LanguageProvider>
     <ErrorBoundary>
     <TooltipProvider>
       <CloudAuthProvider>
@@ -56,5 +58,6 @@ export default function App() {
       </CloudAuthProvider>
     </TooltipProvider>
     </ErrorBoundary>
+    </LanguageProvider>
   )
 }

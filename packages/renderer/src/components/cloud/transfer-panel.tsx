@@ -4,10 +4,12 @@ import { toast } from "sonner"
 
 import { Button } from "@halloween/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { useI18n } from "@/i18n"
 import { mergeTransferSnapshots } from "@/lib/file-operations"
 import type { TransferProgress } from "@/types/global"
 
 export function TransferPanel() {
+  const { t } = useI18n()
   const [items, setItems] = React.useState<TransferProgress[]>([])
   const [collapsed, setCollapsed] = React.useState(false)
 
@@ -32,13 +34,13 @@ export function TransferPanel() {
   return (
     <div className="bg-background fixed right-4 bottom-4 z-40 flex w-80 flex-col gap-3 rounded-lg border p-3 shadow-lg">
       <div className="flex items-center justify-between gap-2">
-        <span className="text-muted-foreground text-xs">Transfers · {running} active</span>
+        <span className="text-muted-foreground text-xs">{t.transfer.title(running)}</span>
         <Button variant="ghost" size="sm" className="ml-auto h-6 px-1 text-xs" onClick={() => setCollapsed(!collapsed)}>
-          {collapsed ? "Show" : "Hide"}
+          {collapsed ? t.common.show : t.common.hide}
         </Button>
         {running < items.length && (
           <Button variant="ghost" size="sm" className="h-6 px-1 text-xs" onClick={() => setItems((previous) => previous.filter((item) => item.status === "running"))}>
-            Clear finished
+            {t.transfer.clearFinished}
           </Button>
         )}
       </div>
@@ -51,9 +53,9 @@ export function TransferPanel() {
               {item.kind === "upload" ? <IconUpload className="text-muted-foreground size-3.5" /> : <IconDownload className="text-muted-foreground size-3.5" />}
               <span className="truncate" title={item.name}>{item.name}</span>
               <span className="text-muted-foreground ml-auto shrink-0 tabular-nums">
-                {item.status === "failed" ? "Failed" : item.status === "cancelled" ? "Cancelled" : item.status === "completed" ? "Completed" : pct >= 100 ? "Finishing…" : `${pct}%`}
+                {item.status === "failed" ? t.transfer.failed : item.status === "cancelled" ? t.transfer.cancelled : item.status === "completed" ? t.transfer.completed : pct >= 100 ? t.transfer.finishing : `${pct}%`}
               </span>
-              {item.status === "running" && <Button variant="ghost" size="sm" className="h-6 px-1 text-xs" onClick={() => void window.electron?.cloud?.cancelTransfer(item.id).catch((error) => toast.error(String(error)))}>Cancel</Button>}
+              {item.status === "running" && <Button variant="ghost" size="sm" className="h-6 px-1 text-xs" onClick={() => void window.electron?.cloud?.cancelTransfer(item.id).catch((error) => toast.error(String(error)))}>{t.common.cancel}</Button>}
             </div>
             <Progress value={pct} className="h-1.5" />
             {item.error && <p className="text-destructive break-words text-xs">{item.error}</p>}

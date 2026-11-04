@@ -2,6 +2,7 @@ import * as React from "react"
 import { IconExternalLink, IconRefresh } from "@tabler/icons-react"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Card, CardContent } from "@halloween/ui/card"
@@ -25,6 +26,7 @@ function openLink(url: string) {
 
 export default function RssPage() {
   const { authed, login } = useCloudAuth()
+  const { t } = useI18n()
   const rss = window.electron?.rss
   const [signingIn, setSigningIn] = React.useState(false)
   const [signInError, setSignInError] = React.useState("")
@@ -68,18 +70,18 @@ export default function RssPage() {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         {authed === null ? (
-          <p className="text-muted-foreground text-sm">Loading…</p>
+          <p className="text-muted-foreground text-sm">{t.common.loading}</p>
         ) : (
           <>
-            <p className="text-sm">Sign in to read RSS feeds</p>
+            <p className="text-sm">{t.rss.signInTitle}</p>
             {signingIn ? (
               <p className="text-muted-foreground flex items-center gap-2 text-sm">
                 <IconRefresh className="size-4 animate-spin" />
-                Complete the authorization in your browser…
+                {t.common.completeAuth}
               </p>
             ) : (
               <Button size="sm" onClick={() => void startSignIn()}>
-                Sign in with browser
+                {t.common.signInBrowser}
               </Button>
             )}
             {signInError && <p className="text-destructive text-sm">{signInError}</p>}
@@ -102,7 +104,7 @@ export default function RssPage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="all">{t.rss.all}</SelectItem>
               {feedNames.map((name) => (
                 <SelectItem key={name} value={name}>
                   {name}
@@ -112,11 +114,11 @@ export default function RssPage() {
           </Select>
         )}
         <span className="text-muted-foreground ml-auto text-xs">
-          Updated {data?.refreshedAt ? formatTime(data.refreshedAt) : "—"}
+          {data?.refreshedAt ? t.rss.updated(formatTime(data.refreshedAt)) : "—"}
         </span>
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
           <IconRefresh className={loading ? "animate-spin" : ""} />
-          Refresh
+          {t.common.refresh}
         </Button>
       </div>
 
@@ -125,23 +127,23 @@ export default function RssPage() {
         {loading && items.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
             <IconRefresh className="size-4 animate-spin" />
-            Loading…
+            {t.common.loading}
           </div>
         ) : error && items.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-destructive text-sm">{error}</p>
             <Button variant="outline" size="sm" onClick={() => void load()}>
-              Retry
+              {t.common.retry}
             </Button>
           </div>
         ) : visible.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center gap-3">
             <p className="text-muted-foreground text-sm">
-              No RSS items yet — feeds are configured in the admin console
+              {t.rss.empty}
             </p>
             <Button variant="outline" size="sm" onClick={() => window.open(ADMIN_RSS_URL, "_blank")}>
               <IconExternalLink />
-              Open Admin Console
+              {t.common.openAdminConsole}
             </Button>
           </div>
         ) : (

@@ -1,6 +1,8 @@
 import * as React from "react"
 
 import { Button } from "@halloween/ui/button"
+
+import { useI18n } from "@/i18n"
 import { fileKind } from "@/lib/format"
 import { capturePlaybackPosition, createPreviewRefreshGuard, playbackTime } from "@/lib/preview-state"
 import type { PlaybackPosition } from "@/lib/preview-state"
@@ -14,6 +16,7 @@ interface MediaPreviewProps {
 }
 
 export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshError }: MediaPreviewProps) {
+  const { t } = useI18n()
   const [currentUrl, setCurrentUrl] = React.useState(url)
   const [generation, setGeneration] = React.useState(0)
   const [refreshing, setRefreshing] = React.useState(false)
@@ -50,7 +53,7 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
       onUrlChange(nextUrl)
     } catch (e) {
       if (!mounted.current) return
-      setError("The preview could not be refreshed. Check your connection and try again.")
+      setError(t.preview.refreshFailed)
       onRefreshError(e)
     } finally {
       inFlight.current = false
@@ -59,7 +62,7 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
   }
 
   const failed = () => {
-    setError("The preview could not be loaded. Refresh it to try again.")
+    setError(t.preview.loadFailed)
     void refresh(true)
   }
   const restorePlayback = () => {
@@ -72,7 +75,7 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
       restore.current = null
       if (previous.paused) element.pause()
       else void element.play().catch(() => {
-        if (mounted.current) setError("Press play to continue the preview.")
+        if (mounted.current) setError(t.preview.resume)
       })
     } catch {
       // Some formats do not allow seeking until canplay; retry there once available.
@@ -104,7 +107,7 @@ export function MediaPreview({ name, url, refreshUrl, onUrlChange, onRefreshErro
     )}
     <div className="flex flex-wrap items-center justify-end gap-3">
       <p aria-live="polite" className="text-muted-foreground flex-1 text-sm">{refreshing ? "Refreshing preview…" : error}</p>
-      <Button variant="outline" size="sm" disabled={refreshing} onClick={() => void refresh(false)}>Refresh preview</Button>
+      <Button variant="outline" size="sm" disabled={refreshing} onClick={() => void refresh(false)}>{t.preview.refreshPreview}</Button>
     </div>
   </div>
 }

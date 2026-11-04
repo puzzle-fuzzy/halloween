@@ -4,6 +4,7 @@ import { IconArrowBackUp, IconFile, IconFolder, IconRefresh, IconTrash } from "@
 import { toast } from "sonner"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@halloween/ui/card"
@@ -22,6 +23,7 @@ interface PurgeIntent { ids?: string[]; all?: boolean; phrase: TrashPurgeInput["
 
 export default function TrashPage() {
   const auth = useCloudAuth()
+  const { t } = useI18n()
   const cloud = window.electron?.cloud
   const [listing, setListing] = React.useState<TrashListing | null>(null)
   const [selected, setSelected] = React.useState<Set<string>>(new Set())
@@ -98,7 +100,7 @@ export default function TrashPage() {
         }
       }
       if (!current()) return
-      if (restored) toast.success(`Restored ${restored} item${restored === 1 ? "" : "s"}`)
+      if (restored) toast.success(t.trash.restoredN(restored))
       setConflicts(pending)
       setFailures(failed)
       setWarnings(notices)
@@ -113,7 +115,7 @@ export default function TrashPage() {
     if (!cloud || !conflict || blocked) return
     const destination = conflict.destination.trim()
     if (!validRestorePath(destination)) {
-      setConflicts((current) => current.map((item, index) => index === 0 ? { ...item, error: "Enter a full cloud path, without hidden names or dot segments, such as /photos/holiday-restored.jpg." } : item))
+      setConflicts((current) => current.map((item, index) => index === 0 ? { ...item, error: t.trash.invalidPath } : item))
       return
     }
     const operation = lifecycle.current
@@ -122,14 +124,14 @@ export default function TrashPage() {
     try {
       const result = await cloud.restoreTrash(conflict.entry.id, destination)
       if (!current()) return
-      toast.success(`Restored to ${result.path}`)
+      toast.success(t.trash.restoredTo(result.path))
       if (result.warning) setWarnings((current) => [...current, result.warning!])
       setConflicts((current) => current.slice(1))
       await load()
     } catch (e) {
       if (!current()) return
       handleError(e)
-      const message = isRestoreConflict(e) ? "That path already exists. Choose a different destination." : String(e)
+      const message = isRestoreConflict(e) ? t.trash.pathExists : String(e)
       setConflicts((current) => current.map((item, index) => index === 0 ? { ...item, error: message } : item))
     } finally {
       if (current()) setBusy(false)
@@ -151,17 +153,17 @@ export default function TrashPage() {
       const result = await cloud.purgeTrash({ ids: purge.ids, all: purge.all, confirmation: purge.phrase })
       if (!current()) return
       if (!result.ok || result.failed?.length) {
-        setPurgeNotice(`Permanently deleted ${result.purged} item${result.purged === 1 ? "" : "s"}. Some items could not be deleted. Review the current list and confirm a new deletion for the remaining items.`)
+        setPurgeNotice(t.trash.purgePartial(result.purged))
         setPurgeFailures((result.failed ?? []).map((failure) => {
           const entry = listing?.entries.find((item) => item.id === failure.id)
           return `${entry ? trashName(entry) : failure.id}: ${failure.error}`
         }))
-        toast.warning("Some items could not be permanently deleted")
-      } else toast.success(`Permanently deleted ${result.purged} item${result.purged === 1 ? "" : "s"}`)
+        toast.warning(t.trash.purgeSomeFailed)
+      } else toast.success(t.trash.purgedN(result.purged))
     } catch (e) {
       if (!current()) return
       handleError(e)
-      setPurgeNotice("The deletion result could not be confirmed. Some items may already have been permanently deleted. Review the current list and select any remaining items for a new confirmation.")
+      setPurgeNotice(t.trash.purgeUncertain)
       setPurgeFailures([String(e)])
     } finally {
       if (current()) {
@@ -186,60 +188,60 @@ export default function TrashPage() {
   })
 
   if (!auth.authed) return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-sm">
-    <p>{auth.error || (auth.authed === null ? "Checking your connection…" : "Sign in to manage deleted files.")}</p>
-    {auth.authed === null && auth.error ? <Button variant="outline" onClick={() => void auth.retry()}>Retry connection</Button> : auth.authed === false && <Button asChild><Link to="/cloud">Sign in to cloud drive</Link></Button>}
+    <p>{auth.error || (auth.authed === null ? t.common.checkingConnection : t.trash.signInTitle)}</p>
+    {auth.authed === null && auth.error ? <Button variant="outline" onClick={() => void auth.retry()}>{t.common.retryConnection}</Button> : auth.authed === false && <Button asChild><Link to="/cloud">{t.common.signInCloud}</Link></Button>}
   </div>
 
   return <div className="flex flex-1 flex-col gap-5 p-4 lg:p-6">
     <div className="flex flex-wrap items-start justify-between gap-3">
-      <div><h2 className="text-xl font-semibold">Trash</h2><p className="text-muted-foreground mt-1 text-sm">Restore deleted cloud files or permanently remove them.</p></div>
+      <div><h2 className="text-xl font-semibold">{t.trash.title}</h2><p className="text-muted-foreground mt-1 text-sm">{t.trash.subtitle}</p></div>
       <div className="flex gap-2">
-        <Button variant="outline" size="sm" disabled={blocked} onClick={() => void load()}><IconRefresh />Refresh</Button>
-        <Button variant="destructive" size="sm" disabled={blocked || !entries.length} onClick={() => openPurge({ all: true, phrase: "EMPTY_TRASH" })}><IconTrash />Empty trash</Button>
+        <Button variant="outline" size="sm" disabled={blocked} onClick={() => void load()}><IconRefresh />{t.common.refresh}</Button>
+        <Button variant="destructive" size="sm" disabled={blocked || !entries.length} onClick={() => openPurge({ all: true, phrase: "EMPTY_TRASH" })}><IconTrash />{t.trash.emptyTrash}</Button>
       </div>
     </div>
     <div className="grid gap-3 sm:grid-cols-3">
-      <Card><CardHeader><CardDescription>Deleted items</CardDescription><CardTitle>{listing ? entries.length : "—"}</CardTitle></CardHeader></Card>
-      <Card><CardHeader><CardDescription>Recoverable items</CardDescription><CardTitle>{listing ? entries.filter((entry) => entry.recoverable).length : "—"}</CardTitle></CardHeader></Card>
-      <Card><CardHeader><CardDescription>{listing?.incomplete ? "Known storage used (at least)" : "Trash storage used"}</CardDescription><CardTitle>{listing ? listing.totalBytes === 0 ? "0 B" : formatBytes(listing.totalBytes) : "—"}</CardTitle></CardHeader></Card>
+      <Card><CardHeader><CardDescription>{t.trash.deletedItems}</CardDescription><CardTitle>{listing ? entries.length : "—"}</CardTitle></CardHeader></Card>
+      <Card><CardHeader><CardDescription>{t.trash.recoverableItems}</CardDescription><CardTitle>{listing ? entries.filter((entry) => entry.recoverable).length : "—"}</CardTitle></CardHeader></Card>
+      <Card><CardHeader><CardDescription>{listing?.incomplete ? t.trash.storageKnown : t.trash.storageTrash}</CardDescription><CardTitle>{listing ? listing.totalBytes === 0 ? "0 B" : formatBytes(listing.totalBytes) : "—"}</CardTitle></CardHeader></Card>
     </div>
-    {listing?.incomplete && <p role="status" className="rounded-lg border p-3 text-sm">Some items could not be fully read. Their storage may be missing from this total. Damaged items remain listed and can be permanently deleted.</p>}
-    {error && <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive break-words">{error}</p><Button variant="outline" size="sm" disabled={blocked} onClick={() => void load()}>Retry</Button></div>}
-    {failures.length > 0 && <Card><CardHeader><CardTitle className="text-sm">Some items could not be restored</CardTitle></CardHeader><CardContent><ul className="space-y-1 text-sm text-destructive">{failures.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul></CardContent></Card>}
-    {warnings.length > 0 && <Card><CardHeader><CardTitle className="text-sm">Restored with a warning</CardTitle></CardHeader><CardContent><ul role="status" className="space-y-1 text-sm">{warnings.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul></CardContent></Card>}
-    {purgeNotice && <Card><CardHeader><CardTitle className="text-sm">Permanent deletion needs review</CardTitle></CardHeader><CardContent role="alert" className="space-y-2 text-sm"><p>{purgeNotice}</p>{purgeFailures.length > 0 && <ul className="space-y-1 text-destructive">{purgeFailures.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul>}</CardContent></Card>}
+    {listing?.incomplete && <p role="status" className="rounded-lg border p-3 text-sm">{t.trash.incompleteNotice}</p>}
+    {error && <div role="alert" className="flex items-center justify-between gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive break-words">{error}</p><Button variant="outline" size="sm" disabled={blocked} onClick={() => void load()}>{t.common.retry}</Button></div>}
+    {failures.length > 0 && <Card><CardHeader><CardTitle className="text-sm">{t.trash.restoreSomeFailed}</CardTitle></CardHeader><CardContent><ul className="space-y-1 text-sm text-destructive">{failures.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul></CardContent></Card>}
+    {warnings.length > 0 && <Card><CardHeader><CardTitle className="text-sm">{t.trash.restoredWithWarning}</CardTitle></CardHeader><CardContent><ul role="status" className="space-y-1 text-sm">{warnings.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul></CardContent></Card>}
+    {purgeNotice && <Card><CardHeader><CardTitle className="text-sm">{t.trash.purgeReview}</CardTitle></CardHeader><CardContent role="alert" className="space-y-2 text-sm"><p>{purgeNotice}</p>{purgeFailures.length > 0 && <ul className="space-y-1 text-destructive">{purgeFailures.map((message, index) => <li key={index} className="break-words">{message}</li>)}</ul>}</CardContent></Card>}
     {selected.size > 0 && <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/40 p-3 text-sm">
-      <span>{selected.size} selected</span>
-      <Button size="sm" variant="outline" disabled={blocked || !recoverable.length} onClick={() => void restore(recoverable)}><IconArrowBackUp />Restore {recoverable.length} item{recoverable.length === 1 ? "" : "s"}</Button>
-      <Button size="sm" variant="destructive" disabled={blocked} onClick={() => openPurge({ ids: [...selected], phrase: "DELETE" })}>Permanently delete</Button>
-      <Button size="sm" variant="ghost" disabled={blocked} onClick={() => setSelected(new Set())}>Clear selection</Button>
-      {recoverable.length < selected.size && <span className="text-muted-foreground">Damaged items are excluded from restore.</span>}
+      <span>{t.common.selected(selected.size)}</span>
+      <Button size="sm" variant="outline" disabled={blocked || !recoverable.length} onClick={() => void restore(recoverable)}><IconArrowBackUp />{t.trash.restoreN(recoverable.length)}</Button>
+      <Button size="sm" variant="destructive" disabled={blocked} onClick={() => openPurge({ ids: [...selected], phrase: "DELETE" })}>{t.trash.permanentlyDelete}</Button>
+      <Button size="sm" variant="ghost" disabled={blocked} onClick={() => setSelected(new Set())}>{t.trash.clearSelection}</Button>
+      {recoverable.length < selected.size && <span className="text-muted-foreground">{t.trash.damagedExcluded}</span>}
     </div>}
     <div className="min-h-40 overflow-auto rounded-lg border">
-      {loading && !listing ? <p className="text-muted-foreground p-6 text-sm">Loading deleted files…</p> : entries.length === 0 ? <p className="text-muted-foreground p-6 text-sm">{error ? "Deleted files could not be loaded." : "Trash is empty."}</p> : <Table>
-        <TableHeader><TableRow><TableHead className="w-10"><Checkbox aria-label="Select all deleted items" checked={allSelected} disabled={blocked} onCheckedChange={(checked) => setSelected(checked === true ? new Set(entries.map((entry) => entry.id)) : new Set())} /></TableHead><TableHead>Name / original path</TableHead><TableHead>Type</TableHead><TableHead>Deleted</TableHead><TableHead>Size</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+      {loading && !listing ? <p className="text-muted-foreground p-6 text-sm">{t.trash.loadingFiles}</p> : entries.length === 0 ? <p className="text-muted-foreground p-6 text-sm">{error ? t.trash.loadFailed : t.trash.empty}</p> : <Table>
+        <TableHeader><TableRow><TableHead className="w-10"><Checkbox aria-label={t.trash.selectAllAria} checked={allSelected} disabled={blocked} onCheckedChange={(checked) => setSelected(checked === true ? new Set(entries.map((entry) => entry.id)) : new Set())} /></TableHead><TableHead>{t.trash.nameOriginalPath}</TableHead><TableHead>{t.common.type}</TableHead><TableHead>{t.trash.deleted}</TableHead><TableHead>{t.common.size}</TableHead><TableHead className="text-right">{t.common.actions}</TableHead></TableRow></TableHeader>
         <TableBody>{entries.map((entry) => <TableRow key={entry.id}>
-          <TableCell><Checkbox aria-label={`Select ${trashName(entry)}`} checked={selected.has(entry.id)} disabled={blocked} onCheckedChange={() => toggle(entry.id)} /></TableCell>
-          <TableCell className="max-w-md"><div className="flex items-center gap-2">{entry.type === "dir" ? <IconFolder className="size-4 shrink-0" /> : <IconFile className="size-4 shrink-0" />}<span className="truncate font-medium">{trashName(entry)}</span>{!entry.recoverable && <Badge variant="destructive">Damaged</Badge>}</div><p className="text-muted-foreground mt-1 break-all text-xs">{entry.originalPath || "Original path unavailable"}</p>{entry.error && <p className="text-destructive mt-1 break-words text-xs">{entry.error}</p>}</TableCell>
-          <TableCell>{entry.type === "dir" ? "Folder" : entry.type === "file" ? "File" : "Unknown"}</TableCell>
-          <TableCell className="whitespace-nowrap">{entry.deletedAt ? formatTime(entry.deletedAt) : "Unknown"}</TableCell>
+          <TableCell><Checkbox aria-label={t.oss.selectEntry(trashName(entry))} checked={selected.has(entry.id)} disabled={blocked} onCheckedChange={() => toggle(entry.id)} /></TableCell>
+          <TableCell className="max-w-md"><div className="flex items-center gap-2">{entry.type === "dir" ? <IconFolder className="size-4 shrink-0" /> : <IconFile className="size-4 shrink-0" />}<span className="truncate font-medium">{trashName(entry)}</span>{!entry.recoverable && <Badge variant="destructive">{t.trash.damaged}</Badge>}</div><p className="text-muted-foreground mt-1 break-all text-xs">{entry.originalPath || t.trash.originalUnavailable}</p>{entry.error && <p className="text-destructive mt-1 break-words text-xs">{entry.error}</p>}</TableCell>
+          <TableCell>{entry.type === "dir" ? t.common.folder : entry.type === "file" ? t.common.file : t.common.unknown}</TableCell>
+          <TableCell className="whitespace-nowrap">{entry.deletedAt ? formatTime(entry.deletedAt) : t.common.unknown}</TableCell>
           <TableCell className="whitespace-nowrap">{entry.size === 0 ? "0 B" : formatBytes(entry.size)}</TableCell>
-          <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="sm" disabled={blocked || !entry.recoverable} onClick={() => void restore([entry])}>Restore</Button><Button variant="ghost" size="sm" className="text-destructive" disabled={blocked} onClick={() => openPurge({ ids: [entry.id], phrase: "DELETE" })}>Delete forever</Button></div></TableCell>
+          <TableCell><div className="flex justify-end gap-1"><Button variant="ghost" size="sm" disabled={blocked || !entry.recoverable} onClick={() => void restore([entry])}>{t.trash.restore}</Button><Button variant="ghost" size="sm" className="text-destructive" disabled={blocked} onClick={() => openPurge({ ids: [entry.id], phrase: "DELETE" })}>{t.common.deleteForever}</Button></div></TableCell>
         </TableRow>)}</TableBody>
       </Table>}
     </div>
-    {busy && <p aria-live="polite" className="text-muted-foreground text-sm">Applying changes…</p>}
+    {busy && <p aria-live="polite" className="text-muted-foreground text-sm">{t.trash.applyingChanges}</p>}
 
     <Dialog open={conflicts.length > 0} onOpenChange={(open) => !open && !busy && setConflicts([])}>
-      <DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>Choose a different restore path</DialogTitle><DialogDescription>The original path already exists. Existing files will not be overwritten.</DialogDescription></DialogHeader>
-        {conflicts[0] && <><p className="break-all text-sm">{conflicts[0].entry.originalPath}</p><Label htmlFor="restore-destination">New cloud path</Label><Input id="restore-destination" disabled={busy} value={conflicts[0].destination} onChange={(event) => setConflicts((current) => current.map((item, index) => index === 0 ? { ...item, destination: event.target.value, error: undefined } : item))} /><p className="text-muted-foreground text-xs">The destination folder must already exist. {conflicts.length > 1 && `${conflicts.length} conflicts remaining.`}</p>{conflicts[0].error && <p role="alert" className="text-destructive break-words text-sm">{conflicts[0].error}</p>}</>}
-        <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setConflicts((current) => current.slice(1))}>Skip this item</Button><Button disabled={blocked || !conflicts[0]?.destination.trim()} onClick={() => void restoreConflict()}>Restore to this path</Button></DialogFooter>
+      <DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>{t.trash.choosePathTitle}</DialogTitle><DialogDescription>{t.trash.choosePathDesc}</DialogDescription></DialogHeader>
+        {conflicts[0] && <><p className="break-all text-sm">{conflicts[0].entry.originalPath}</p><Label htmlFor="restore-destination">{t.trash.newPath}</Label><Input id="restore-destination" disabled={busy} value={conflicts[0].destination} onChange={(event) => setConflicts((current) => current.map((item, index) => index === 0 ? { ...item, destination: event.target.value, error: undefined } : item))} /><p className="text-muted-foreground text-xs">{t.trash.destMustExist} {conflicts.length > 1 && t.trash.conflictsRemaining(conflicts.length)}</p>{conflicts[0].error && <p role="alert" className="text-destructive break-words text-sm">{conflicts[0].error}</p>}</>}
+        <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setConflicts((current) => current.slice(1))}>{t.trash.skipItem}</Button><Button disabled={blocked || !conflicts[0]?.destination.trim()} onClick={() => void restoreConflict()}>{t.trash.restoreToPath}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
     <Dialog open={purge !== null} onOpenChange={(open) => !open && !busy && setPurge(null)}>
-      <DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>{purge?.all ? "Empty trash permanently?" : "Delete selected items permanently?"}</DialogTitle><DialogDescription>This removes the stored files, including folder contents, and cannot be undone. A backup may not contain these items.</DialogDescription></DialogHeader>
-        <Label htmlFor="purge-confirmation">Type {purge?.phrase} to confirm</Label><Input id="purge-confirmation" autoComplete="off" disabled={busy} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
-        <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setPurge(null)}>Cancel</Button><Button variant="destructive" disabled={blocked || confirmation !== purge?.phrase} onClick={() => void purgeConfirmed()}>Delete permanently</Button></DialogFooter>
+      <DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle>{purge?.all ? t.trash.emptyTitle : t.trash.deleteSelectedTitle}</DialogTitle><DialogDescription>{t.trash.purgeDesc}</DialogDescription></DialogHeader>
+        <Label htmlFor="purge-confirmation">{t.trash.typePhrase(purge?.phrase ?? "")}</Label><Input id="purge-confirmation" autoComplete="off" disabled={busy} value={confirmation} onChange={(event) => setConfirmation(event.target.value)} />
+        <DialogFooter><Button variant="outline" disabled={busy} onClick={() => setPurge(null)}>{t.common.cancel}</Button><Button variant="destructive" disabled={blocked || confirmation !== purge?.phrase} onClick={() => void purgeConfirmed()}>{t.trash.deletePermanently}</Button></DialogFooter>
       </DialogContent>
     </Dialog>
   </div>

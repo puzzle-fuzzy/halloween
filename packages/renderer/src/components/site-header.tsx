@@ -1,22 +1,24 @@
 import { useLocation } from "react-router-dom"
 
+import { useI18n } from "@/i18n"
+
 import { Separator } from "@halloween/ui/separator"
 import { SidebarTrigger, useSidebar } from "@halloween/ui/sidebar"
 import { WindowControls } from "@/components/window-controls"
 import { cn } from "@/lib/utils"
 
-const titles: Record<string, string> = {
-  "/": "Overview",
-  "/cloud": "Cloud",
-  "/oss": "OSS",
-  "/rss": "RSS",
-  "/proxy": "Proxy",
-  "/trash": "Trash",
-  "/backups": "Backups",
-}
-
 export function SiteHeader() {
   const { pathname } = useLocation()
+  const { t } = useI18n()
+  const titles: Record<string, string> = {
+    "/": t.nav.overview,
+    "/cloud": t.nav.cloud,
+    "/oss": t.nav.oss,
+    "/rss": t.nav.rss,
+    "/proxy": t.nav.proxy,
+    "/trash": t.nav.trash,
+    "/backups": t.nav.backups,
+  }
   const { state } = useSidebar()
   // sidebar collapsed = this header sits at the window's top-left,
   // where the mac traffic lights live

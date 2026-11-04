@@ -4,6 +4,7 @@ import { IconArchive, IconCheck, IconRefresh, IconShieldCheck } from "@tabler/ic
 import { toast } from "sonner"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@halloween/ui/card"
@@ -16,22 +17,20 @@ import { formatBytes, formatTime } from "@/lib/format"
 import { backupPercent, mergeBackupJob } from "@/lib/storage-maintenance"
 import type { BackupJob, BackupJobKind, BackupStatus } from "@/types/global"
 
-const JOB_LABELS: Record<BackupJobKind, string> = { backup: "Create backup", check: "Integrity check", verify: "Restore verification", refresh: "Refresh snapshots" }
-const PHASE_LABELS: Record<string, string> = {
-  starting: "Starting", snapshotting: "Preparing a consistent snapshot", hashing: "Building the file manifest", "backing-up": "Backing up files",
-  "listing-snapshots": "Loading snapshots", "checking-all-data": "Checking all repository data", restoring: "Restoring to an isolated workspace",
-  "verifying-manifest": "Verifying restored files", completed: "Completed", failed: "Failed", interrupted: "Interrupted",
-}
 
-function JobBadge({ job }: { job: BackupJob }) {
-  return <Badge variant={job.status === "failed" || job.status === "interrupted" ? "destructive" : "outline"}>{job.status === "succeeded" ? "Succeeded" : job.status === "running" ? "Running" : job.status === "interrupted" ? "Interrupted" : "Failed"}</Badge>
+
+import type { Dict } from "@/i18n"
+
+function JobBadge({ job, t }: { job: BackupJob; t: Dict }) {
+  return <Badge variant={job.status === "failed" || job.status === "interrupted" ? "destructive" : "outline"}>{job.status === "succeeded" ? t.backups.jobSucceeded : job.status === "running" ? t.backups.jobRunning : job.status === "interrupted" ? t.backups.jobInterrupted : t.backups.jobFailed}</Badge>
 }
-function LastRun({ label, job }: { label: string; job?: BackupJob }) {
-  return <Card><CardHeader><CardDescription>{label}</CardDescription><CardTitle className="text-lg">{job ? formatTime(job.finishedAt ?? job.startedAt) : "Never"}</CardTitle></CardHeader><CardContent className="space-y-2">{job ? <><JobBadge job={job} />{job.error && <p className="text-destructive break-words text-xs">{job.error}</p>}</> : <p className="text-muted-foreground text-xs">No completed run recorded.</p>}</CardContent></Card>
+function LastRun({ label, job, t }: { label: string; job?: BackupJob; t: Dict }) {
+  return <Card><CardHeader><CardDescription>{label}</CardDescription><CardTitle className="text-lg">{job ? formatTime(job.finishedAt ?? job.startedAt) : t.common.never}</CardTitle></CardHeader><CardContent className="space-y-2">{job ? <><JobBadge job={job} t={t} />{job.error && <p className="text-destructive break-words text-xs">{job.error}</p>}</> : <p className="text-muted-foreground text-xs">{t.backups.noRuns}</p>}</CardContent></Card>
 }
 
 export default function BackupsPage() {
   const auth = useCloudAuth()
+  const { t } = useI18n()
   const handleError = auth.handleError
   const cloud = window.electron?.cloud
   const [status, setStatus] = React.useState<BackupStatus | null>(null)
@@ -88,8 +87,8 @@ export default function BackupsPage() {
           catch (e) { if (active) { setPollError(String(e)); handleError(e) } }
           if (!active) return
           setStatus((current) => next ?? (current ? mergeBackupJob(current, job) : current))
-          if (job.status === "succeeded") toast.success(`${JOB_LABELS[job.kind]} completed`)
-          else toast.error(job.error || `${JOB_LABELS[job.kind]} ${job.status}`)
+          if (job.status === "succeeded") toast.success(t.backups.taskCompleted(t.backups.taskLabels[job.kind]))
+          else toast.error(job.error || t.backups.taskStatus(t.backups.taskLabels[job.kind], job.status))
           return
         }
         setStatus((current) => current ? mergeBackupJob(current, job) : current)
@@ -98,7 +97,7 @@ export default function BackupsPage() {
         consecutiveFailures += 1
         handleError(e)
         if (consecutiveFailures >= 3) {
-          setPollError(`Live updates paused. The job may still be running on the server. ${String(e)}`)
+          setPollError(t.backups.livePaused(String(e)))
           return
         }
       }
@@ -134,36 +133,36 @@ export default function BackupsPage() {
   }
 
   if (!auth.authed) return <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-sm">
-    <p>{auth.error || (auth.authed === null ? "Checking your connection…" : "Sign in to manage backups.")}</p>
-    {auth.authed === null && auth.error ? <Button variant="outline" onClick={() => void auth.retry()}>Retry connection</Button> : auth.authed === false && <Button asChild><Link to="/cloud">Sign in to cloud drive</Link></Button>}
+    <p>{auth.error || (auth.authed === null ? t.common.checkingConnection : t.backups.signInTitle)}</p>
+    {auth.authed === null && auth.error ? <Button variant="outline" onClick={() => void auth.retry()}>{t.common.retryConnection}</Button> : auth.authed === false && <Button asChild><Link to="/cloud">{t.common.signInCloud}</Link></Button>}
   </div>
 
   const disabled = loading || starting || !status?.configured || !status.available || Boolean(status.activeJob)
   const active = status?.activeJob
   const percent = active ? backupPercent(active) : null
   return <div className="flex flex-1 flex-col gap-5 p-4 lg:p-6">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">Backups</h2><p className="text-muted-foreground mt-1 text-sm">Create backups, check their integrity, and verify a restore.</p></div><Button variant="outline" size="sm" disabled={loading || starting} onClick={() => void load()}><IconRefresh />Refresh status</Button></div>
+    <div className="flex flex-wrap items-start justify-between gap-3"><div><h2 className="text-xl font-semibold">{t.backups.title}</h2><p className="text-muted-foreground mt-1 text-sm">{t.backups.subtitle}</p></div><Button variant="outline" size="sm" disabled={loading || starting} onClick={() => void load()}><IconRefresh />{t.backups.refreshStatus}</Button></div>
     {error && <div role="alert" className="rounded-lg border p-3 text-sm text-destructive break-words">{error}</div>}
-    {!status ? <p className="text-muted-foreground text-sm">{loading ? "Loading backup status…" : "Backup status could not be loaded. Refresh status to try again."}</p> : <>
-      <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>Backup service</CardTitle><Badge variant={status.configured && status.available ? "outline" : "secondary"}>{!status.configured ? "Not configured" : status.available ? "Available" : "Unavailable"}</Badge></div><CardDescription>{status.configured && status.available ? "Your server is ready to use its dedicated backup repository." : status.reason || "The backup service needs attention on your server."}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm">
-        {status.version && <p className="text-muted-foreground">Backup engine: {status.version}</p>}
-        {!status.configured && <p>Configure a dedicated backup repository, its password file, and restic on your server, then refresh status. Credentials stay on the server.</p>}
-        {status.configured && !status.available && <p>Check the backup engine and repository settings on your server, then refresh status.</p>}
+    {!status ? <p className="text-muted-foreground text-sm">{loading ? t.backups.loadingStatus : t.backups.statusFailed}</p> : <>
+      <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-3"><CardTitle>{t.backups.service}</CardTitle><Badge variant={status.configured && status.available ? "outline" : "secondary"}>{!status.configured ? t.backups.notConfigured : status.available ? t.backups.available : t.backups.unavailable}</Badge></div><CardDescription>{status.configured && status.available ? t.backups.readyDesc : status.reason || t.backups.needsAttention}</CardDescription></CardHeader><CardContent className="space-y-2 text-sm">
+        {status.version && <p className="text-muted-foreground">{t.backups.engine(status.version)}</p>}
+        {!status.configured && <p>{t.backups.configureHint}</p>}
+        {status.configured && !status.available && <p>{t.backups.checkEngineHint}</p>}
       </CardContent></Card>
-      <div className="grid gap-3 md:grid-cols-3"><LastRun label="Last successful backup" job={status.lastSuccessfulBackup} /><LastRun label="Last integrity check" job={status.lastCheck} /><LastRun label="Last restore verification" job={status.lastVerification} /></div>
-      <Card><CardHeader><CardTitle>Run a backup task</CardTitle><CardDescription>Tasks continue on the server if you leave this page. Only one task can run at a time.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2"><Button disabled={disabled} onClick={() => void start("backup")}><IconArchive />Create backup now</Button><Button variant="outline" disabled={disabled} onClick={() => void start("check")}><IconCheck />Check repository integrity</Button><Button variant="outline" disabled={disabled} onClick={() => void start("refresh")}><IconRefresh />Refresh snapshots</Button></CardContent></Card>
-      {active && <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-base">{JOB_LABELS[active.kind]}</CardTitle><JobBadge job={active} /></div><CardDescription>{PHASE_LABELS[active.phase] || active.phase}</CardDescription></CardHeader><CardContent className="space-y-3" aria-live="polite">
-        <Progress value={percent ?? undefined} aria-label="Backup task progress" />
-        <p className="text-muted-foreground text-sm">{percent === null ? "Working…" : `${Math.round(percent)}%`}{active.progress?.filesDone !== undefined && ` · ${active.progress.filesDone}${active.progress.filesTotal !== undefined ? ` / ${active.progress.filesTotal}` : ""} files`}{active.progress?.bytesDone !== undefined && ` · ${active.progress.bytesDone === 0 ? "0 B" : formatBytes(active.progress.bytesDone)}${active.progress.bytesTotal ? ` / ${formatBytes(active.progress.bytesTotal)}` : ""}`}</p>
-        <p className="text-muted-foreground text-xs">Started {formatTime(active.startedAt)}</p>
+      <div className="grid gap-3 md:grid-cols-3"><LastRun label={t.backups.lastBackup} job={status.lastSuccessfulBackup} t={t} /><LastRun label={t.backups.lastCheck} job={status.lastCheck} t={t} /><LastRun label={t.backups.lastVerify} job={status.lastVerification} t={t} /></div>
+      <Card><CardHeader><CardTitle>{t.backups.runTask}</CardTitle><CardDescription>{t.backups.runTaskDesc}</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2"><Button disabled={disabled} onClick={() => void start("backup")}><IconArchive />{t.backups.createNow}</Button><Button variant="outline" disabled={disabled} onClick={() => void start("check")}><IconCheck />{t.backups.checkIntegrity}</Button><Button variant="outline" disabled={disabled} onClick={() => void start("refresh")}><IconRefresh />{t.backups.refreshSnapshots}</Button></CardContent></Card>
+      {active && <Card><CardHeader><div className="flex flex-wrap items-center justify-between gap-2"><CardTitle className="text-base">{t.backups.taskLabels[active.kind]}</CardTitle><JobBadge job={active} t={t} /></div><CardDescription>{t.backups.phases[active.phase] || active.phase}</CardDescription></CardHeader><CardContent className="space-y-3" aria-live="polite">
+        <Progress value={percent ?? undefined} aria-label={t.backups.progressAria} />
+        <p className="text-muted-foreground text-sm">{percent === null ? t.backups.working : `${Math.round(percent)}%`}{active.progress?.filesDone !== undefined && ` · ${t.backups.filesUnit(active.progress.filesDone, active.progress.filesTotal)}`}{active.progress?.bytesDone !== undefined && ` · ${active.progress.bytesDone === 0 ? "0 B" : formatBytes(active.progress.bytesDone)}${active.progress.bytesTotal ? ` / ${formatBytes(active.progress.bytesTotal)}` : ""}`}</p>
+        <p className="text-muted-foreground text-xs">{t.backups.startedAt(formatTime(active.startedAt))}</p>
       </CardContent></Card>}
-      {pollError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive flex-1 break-words">{pollError}</p><Button variant="outline" size="sm" onClick={() => { setMonitorAttempt((value) => value + 1); void load() }}>Retry updates</Button></div>}
-      <Card><CardHeader><CardTitle>Verify a restore</CardTitle><CardDescription>Restores the selected snapshot into an isolated workspace and compares its files with the saved manifest.</CardDescription></CardHeader><CardContent className="space-y-4">
-        <p className="text-muted-foreground text-sm">The snapshot list is cached. Use Refresh snapshots to fetch the latest list from the repository.</p>
-        <div className="flex flex-wrap items-end gap-3"><div className="min-w-0 flex-1 space-y-2"><Label htmlFor="backup-snapshot">Snapshot</Label><Select value={snapshotId} onValueChange={setSnapshotId} disabled={disabled || !status.snapshots.length}><SelectTrigger id="backup-snapshot" className="w-full"><SelectValue placeholder="No snapshots available" /></SelectTrigger><SelectContent>{status.snapshots.map((snapshot) => <SelectItem key={snapshot.id} value={snapshot.id}>{formatTime(snapshot.createdAt)} · {snapshot.id.slice(0, 12)}</SelectItem>)}</SelectContent></Select></div><Button disabled={disabled || !snapshotId} onClick={() => void start("verify")}><IconShieldCheck />Verify restore</Button></div>
-        {status.snapshots.length > 0 && <div className="max-h-64 overflow-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>Created</TableHead><TableHead>Snapshot</TableHead><TableHead>Files</TableHead><TableHead>Size</TableHead></TableRow></TableHeader><TableBody>{status.snapshots.map((snapshot) => <TableRow key={snapshot.id}><TableCell className="whitespace-nowrap">{formatTime(snapshot.createdAt)}</TableCell><TableCell className="font-mono text-xs" title={snapshot.id}>{snapshot.id.slice(0, 12)}</TableCell><TableCell>{snapshot.files ?? "—"}</TableCell><TableCell>{snapshot.bytes === undefined ? "—" : snapshot.bytes === 0 ? "0 B" : formatBytes(snapshot.bytes)}</TableCell></TableRow>)}</TableBody></Table></div>}
+      {pollError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-3 text-sm"><p className="text-destructive flex-1 break-words">{pollError}</p><Button variant="outline" size="sm" onClick={() => { setMonitorAttempt((value) => value + 1); void load() }}>{t.common.retryUpdates}</Button></div>}
+      <Card><CardHeader><CardTitle>{t.backups.verifyTitle}</CardTitle><CardDescription>{t.backups.verifyDesc}</CardDescription></CardHeader><CardContent className="space-y-4">
+        <p className="text-muted-foreground text-sm">{t.backups.snapshotListCached}</p>
+        <div className="flex flex-wrap items-end gap-3"><div className="min-w-0 flex-1 space-y-2"><Label htmlFor="backup-snapshot">{t.backups.snapshot}</Label><Select value={snapshotId} onValueChange={setSnapshotId} disabled={disabled || !status.snapshots.length}><SelectTrigger id="backup-snapshot" className="w-full"><SelectValue placeholder={t.backups.noSnapshots} /></SelectTrigger><SelectContent>{status.snapshots.map((snapshot) => <SelectItem key={snapshot.id} value={snapshot.id}>{formatTime(snapshot.createdAt)} · {snapshot.id.slice(0, 12)}</SelectItem>)}</SelectContent></Select></div><Button disabled={disabled || !snapshotId} onClick={() => void start("verify")}><IconShieldCheck />{t.backups.verifyRestore}</Button></div>
+        {status.snapshots.length > 0 && <div className="max-h-64 overflow-auto rounded-md border"><Table><TableHeader><TableRow><TableHead>{t.backups.created}</TableHead><TableHead>{t.backups.snapshot}</TableHead><TableHead>{t.backups.filesCol}</TableHead><TableHead>{t.common.size}</TableHead></TableRow></TableHeader><TableBody>{status.snapshots.map((snapshot) => <TableRow key={snapshot.id}><TableCell className="whitespace-nowrap">{formatTime(snapshot.createdAt)}</TableCell><TableCell className="font-mono text-xs" title={snapshot.id}>{snapshot.id.slice(0, 12)}</TableCell><TableCell>{snapshot.files ?? "—"}</TableCell><TableCell>{snapshot.bytes === undefined ? "—" : snapshot.bytes === 0 ? "0 B" : formatBytes(snapshot.bytes)}</TableCell></TableRow>)}</TableBody></Table></div>}
       </CardContent></Card>
-      <Card><CardHeader><CardTitle>Recent tasks</CardTitle><CardDescription>Recent results recorded by this server.</CardDescription></CardHeader><CardContent>{status.jobs.length === 0 ? <p className="text-muted-foreground text-sm">No backup tasks recorded yet.</p> : <div className="overflow-auto"><Table><TableHeader><TableRow><TableHead>Task</TableHead><TableHead>Started</TableHead><TableHead>Result</TableHead><TableHead>Details</TableHead></TableRow></TableHeader><TableBody>{status.jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{JOB_LABELS[job.kind]}</TableCell><TableCell className="whitespace-nowrap">{formatTime(job.startedAt)}</TableCell><TableCell><JobBadge job={job} /></TableCell><TableCell className="max-w-md break-words text-sm">{job.error ? <span className="text-destructive">{job.error}</span> : job.result ? `${job.result.files === undefined ? "" : `${job.result.files} files`}${job.result.bytes === undefined ? "" : ` · ${job.result.bytes === 0 ? "0 B" : formatBytes(job.result.bytes)}`}` || PHASE_LABELS[job.phase] || job.phase : PHASE_LABELS[job.phase] || job.phase}</TableCell></TableRow>)}</TableBody></Table></div>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>{t.backups.recentTasks}</CardTitle><CardDescription>{t.backups.recentTasksDesc}</CardDescription></CardHeader><CardContent>{status.jobs.length === 0 ? <p className="text-muted-foreground text-sm">{t.backups.noTasks}</p> : <div className="overflow-auto"><Table><TableHeader><TableRow><TableHead>{t.backups.task}</TableHead><TableHead>{t.backups.created}</TableHead><TableHead>{t.backups.result}</TableHead><TableHead>{t.backups.details}</TableHead></TableRow></TableHeader><TableBody>{status.jobs.map((job) => <TableRow key={job.id}><TableCell className="whitespace-nowrap">{t.backups.taskLabels[job.kind]}</TableCell><TableCell className="whitespace-nowrap">{formatTime(job.startedAt)}</TableCell><TableCell><JobBadge job={job} t={t} /></TableCell><TableCell className="max-w-md break-words text-sm">{job.error ? <span className="text-destructive">{job.error}</span> : job.result ? `${job.result.files === undefined ? "" : t.backups.nFiles(job.result.files)}${job.result.bytes === undefined ? "" : ` · ${job.result.bytes === 0 ? "0 B" : formatBytes(job.result.bytes)}`}` || t.backups.phases[job.phase] || job.phase : t.backups.phases[job.phase] || job.phase}</TableCell></TableRow>)}</TableBody></Table></div>}</CardContent></Card>
     </>}
   </div>
 }

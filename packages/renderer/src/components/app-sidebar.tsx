@@ -10,6 +10,7 @@ import {
   IconArchive,
 } from "@tabler/icons-react"
 
+import { useI18n } from "@/i18n"
 import { NavMain } from "@/components/nav-main"
 import { NavUser } from "@/components/nav-user"
 import {
@@ -19,47 +20,21 @@ import {
   SidebarHeader,
 } from "@halloween/ui/sidebar"
 
-const data = {
-  navMain: [
-    {
-      title: "Overview",
-      to: "/",
-      icon: IconDashboard,
-    },
-    {
-      title: "Cloud",
-      to: "/cloud",
-      icon: IconCloud,
-    },
-    {
-      title: "OSS",
-      to: "/oss",
-      icon: IconBucket,
-    },
-    {
-      title: "RSS",
-      to: "/rss",
-      icon: IconRss,
-    },
-    {
-      title: "Proxy",
-      to: "/proxy",
-      icon: IconRocket,
-    },
-    {
-      title: "Trash",
-      to: "/trash",
-      icon: IconTrash,
-    },
-    {
-      title: "Backups",
-      to: "/backups",
-      icon: IconArchive,
-    },
-  ],
-}
+
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { t } = useI18n()
+  const data = {
+    navMain: [
+      { title: t.nav.overview, to: "/", icon: IconDashboard },
+      { title: t.nav.cloud, to: "/cloud", icon: IconCloud },
+      { title: t.nav.oss, to: "/oss", icon: IconBucket },
+      { title: t.nav.rss, to: "/rss", icon: IconRss },
+      { title: t.nav.proxy, to: "/proxy", icon: IconRocket },
+      { title: t.nav.trash, to: "/trash", icon: IconTrash },
+      { title: t.nav.backups, to: "/backups", icon: IconArchive },
+    ],
+  }
   // mac traffic lights overlay the top-left of this header row — keep clear
   const isMac = window.electron?.platform === "darwin"
   return (

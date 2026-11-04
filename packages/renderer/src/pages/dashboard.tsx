@@ -3,6 +3,7 @@ import { Link } from "react-router-dom"
 import { IconArrowRight, IconBucket, IconCloud, IconRefresh } from "@tabler/icons-react"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@halloween/ui/card"
@@ -16,6 +17,7 @@ interface Overview {
 
 export default function DashboardPage() {
   const { authed, error: authError, retry, handleError } = useCloudAuth()
+  const { t } = useI18n()
   const [overview, setOverview] = React.useState<Overview | null>(null)
   const [error, setError] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -46,37 +48,37 @@ export default function DashboardPage() {
     <div className="flex flex-1 flex-col gap-6 p-4 lg:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold tracking-tight">Your files, in one place</h2>
-          <p className="text-muted-foreground mt-2 text-sm">Manage your private cloud drive and OSS storage.</p>
+          <h2 className="text-2xl font-semibold tracking-tight">{t.dashboard.title}</h2>
+          <p className="text-muted-foreground mt-2 text-sm">{t.dashboard.subtitle}</p>
         </div>
-        <Badge variant="outline">{authed === null ? "Checking connection…" : authed ? "Signed in" : "Signed out"}</Badge>
+        <Badge variant="outline">{authed === null ? t.dashboard.checkingConnection : authed ? t.dashboard.signedIn : t.dashboard.signedOut}</Badge>
       </div>
 
-      {authError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm"><p className="text-destructive flex-1">{authError}</p>{authed === null && <Button variant="outline" size="sm" onClick={() => void retry()}>Retry connection</Button>}</div>}
+      {authError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border p-4 text-sm"><p className="text-destructive flex-1">{authError}</p>{authed === null && <Button variant="outline" size="sm" onClick={() => void retry()}>{t.common.retryConnection}</Button>}</div>}
 
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><IconCloud className="size-5" />Cloud drive</CardTitle>
-            <CardDescription>Your files on your own server.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><IconCloud className="size-5" />{t.dashboard.cloudCard}</CardTitle>
+            <CardDescription>{t.dashboard.cloudCardDesc}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-muted-foreground text-sm">
-              {overview ? `${overview.entries.length} items in the root folder` : "Browse, search, upload and preview your files."}
+              {overview ? t.dashboard.itemsInRoot(overview.entries.length) : t.dashboard.cloudFallback}
             </p>
-            <Button asChild><Link to="/cloud">{authed ? "Open cloud drive" : "Sign in to cloud drive"}<IconArrowRight /></Link></Button>
+            <Button asChild><Link to="/cloud">{authed ? t.dashboard.openCloud : t.dashboard.signInCloud}<IconArrowRight /></Link></Button>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2"><IconBucket className="size-5" />OSS storage</CardTitle>
-            <CardDescription>Access your Aliyun accounts and buckets.</CardDescription>
+            <CardTitle className="flex items-center gap-2"><IconBucket className="size-5" />{t.dashboard.ossCard}</CardTitle>
+            <CardDescription>{t.dashboard.ossCardDesc}</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-start gap-4">
             <p className="text-muted-foreground text-sm">
-              {overview ? `${overview.accounts} configured OSS account${overview.accounts === 1 ? "" : "s"}` : "Upload and download directly to your buckets."}
+              {overview ? t.dashboard.accountsConfigured(overview.accounts) : t.dashboard.ossFallback}
             </p>
-            <Button asChild variant="outline"><Link to="/oss">Open OSS manager<IconArrowRight /></Link></Button>
+            <Button asChild variant="outline"><Link to="/oss">{t.dashboard.openOss}<IconArrowRight /></Link></Button>
           </CardContent>
         </Card>
       </div>
@@ -85,17 +87,17 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="flex flex-row items-start justify-between gap-4">
             <div>
-              <CardTitle>Recently modified in cloud root</CardTitle>
-              <CardDescription className="mt-2">Files in subfolders are available in the cloud drive.</CardDescription>
+              <CardTitle>{t.dashboard.recent}</CardTitle>
+              <CardDescription className="mt-2">{t.dashboard.recentDesc}</CardDescription>
             </div>
-            <Button variant="ghost" size="icon" aria-label="Refresh overview" disabled={loading} onClick={() => setRefresh((n) => n + 1)}>
+            <Button variant="ghost" size="icon" aria-label={t.dashboard.refreshAria} disabled={loading} onClick={() => setRefresh((n) => n + 1)}>
               <IconRefresh className={loading ? "animate-spin" : ""} />
             </Button>
           </CardHeader>
           <CardContent>
-            {loading ? <p className="text-muted-foreground text-sm">Loading your storage…</p> : error ? (
+            {loading ? <p className="text-muted-foreground text-sm">{t.dashboard.loadingStorage}</p> : error ? (
               <div role="alert" className="space-y-2 text-sm">
-                <p className="text-destructive">Could not load your storage. Check the connection or sign in again.</p>
+                <p className="text-destructive">{t.dashboard.loadFailed}</p>
                 <p className="text-muted-foreground break-words">{error}</p>
               </div>
             ) : recent.length ? (
@@ -107,7 +109,7 @@ export default function DashboardPage() {
                   </li>
                 ))}
               </ul>
-            ) : <p className="text-muted-foreground text-sm">No files in the root folder yet.</p>}
+            ) : <p className="text-muted-foreground text-sm">{t.dashboard.emptyRoot}</p>}
           </CardContent>
         </Card>
       )}

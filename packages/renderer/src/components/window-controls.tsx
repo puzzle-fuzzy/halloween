@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react"
+
+import { useI18n } from "@/i18n"
 import { IconCopy, IconMinus, IconSquare, IconX } from "@tabler/icons-react"
 
 export function WindowControls() {
   const api = window.electron?.window
+  const { t } = useI18n()
   const [maximized, setMaximized] = useState(false)
 
   useEffect(() => {
@@ -26,7 +29,7 @@ export function WindowControls() {
     <div className="flex items-stretch [-webkit-app-region:no-drag]">
       <button
         type="button"
-        aria-label="Minimize"
+        aria-label={t.window.minimize}
         className={button}
         onClick={() => api.minimize()}
       >
@@ -34,7 +37,7 @@ export function WindowControls() {
       </button>
       <button
         type="button"
-        aria-label={maximized ? "Restore" : "Maximize"}
+        aria-label={maximized ? t.window.restore : t.window.maximize}
         className={button}
         onClick={() => api.toggleMaximize()}
       >
@@ -46,7 +49,7 @@ export function WindowControls() {
       </button>
       <button
         type="button"
-        aria-label="Close"
+        aria-label={t.window.close}
         className={`${button} hover:bg-destructive hover:text-white`}
         onClick={() => api.close()}
       >

@@ -12,6 +12,8 @@ import { useTheme } from "next-themes"
 import { toast } from "sonner"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
+import type { Lang } from "@/i18n"
 
 import {
   Avatar,
@@ -48,6 +50,7 @@ export function NavUser() {
   const { isMobile } = useSidebar()
   const { theme, setTheme } = useTheme()
   const cloudAuth = useCloudAuth()
+  const { lang, setLang, t } = useI18n()
   const [profile, setProfile] = React.useState<Profile | null>(null)
 
   React.useEffect(() => {
@@ -64,7 +67,7 @@ export function NavUser() {
   }, [cloudAuth.authed])
 
   const name = profile?.name || "Halloween"
-  const email = profile?.email || "not configured"
+  const email = profile?.email || t.menu.notConfigured
   const fallback = name.slice(0, 1).toUpperCase()
 
   return (
@@ -113,37 +116,42 @@ export function NavUser() {
             <DropdownMenuGroup>
               <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("profile").catch((e) => toast.error(String(e)))}>
                 <IconUserCircle />
-                Manage profile
+                {t.menu.manageProfile}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => void window.electron?.cloud?.openAdmin("tokens").catch((e) => toast.error(String(e)))}>
                 <IconDevices />
-                Authorized devices
+                {t.menu.authorizedDevices}
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
               <DropdownMenuRadioItem value="light">
                 <IconSun />
-                Light
+                {t.menu.light}
               </DropdownMenuRadioItem>
               <DropdownMenuRadioItem value="dark">
                 <IconMoon />
-                Dark
+                {t.menu.dark}
               </DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup value={lang} onValueChange={(value) => setLang(value as Lang)}>
+              <DropdownMenuRadioItem value="en">{t.menu.english}</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="zh-CN">{t.menu.chinese}</DropdownMenuRadioItem>
             </DropdownMenuRadioGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => window.open(GITHUB_URL, "_blank")}>
               <IconBrandGithub />
-              GitHub
+              {t.menu.github}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
-                void cloudAuth.logout().then(() => toast.success("Signed out")).catch((e) => toast.error(String(e)))
+                void cloudAuth.logout().then(() => toast.success(t.common.signedOut)).catch((e) => toast.error(String(e)))
               }}
               disabled={!cloudAuth.authed}
             >
               <IconLogout />
-              Log out
+              {t.menu.logOut}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

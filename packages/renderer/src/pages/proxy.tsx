@@ -15,6 +15,8 @@ import {
 } from "@tabler/icons-react"
 import { toast } from "sonner"
 
+import { useI18n } from "@/i18n"
+
 import { Badge } from "@halloween/ui/badge"
 import { Button } from "@halloween/ui/button"
 import {
@@ -47,6 +49,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 export default function ProxyPage() {
+  const { t } = useI18n()
   const proxy = window.electron?.proxy
   const isWindows = window.electron?.platform === "win32"
   const [state, setState] = React.useState<ProxyState | null>(null)
@@ -87,7 +90,7 @@ export default function ProxyPage() {
     if (!proxy || state?.busy) return
     const next = on ? await proxy.enable() : await proxy.disable()
     setState(next)
-    if (on && next.lastError) toast.error("Proxy failed to start", { description: next.lastError.slice(0, 300) })
+    if (on && next.lastError) toast.error(t.proxy.proxyFailedTitle, { description: next.lastError.slice(0, 300) })
   }
 
   const setMode = async (mode: "sys" | "tun") => {
@@ -102,7 +105,7 @@ export default function ProxyPage() {
       setState(await proxy.installTun())
       toast.success("TUN service installed")
     } catch (e) {
-      toast.error("Install failed", { description: String(e).slice(0, 300) })
+      toast.error(t.proxy.installFailedTitle, { description: String(e).slice(0, 300) })
     } finally {
       setInstalling(false)
     }
@@ -114,7 +117,7 @@ export default function ProxyPage() {
     try {
       setState(await proxy.addSubscription(url.trim()))
       setUrl("")
-      toast.success("Subscription added")
+      toast.success(t.proxy.subAdded)
     } catch (e) {
       toast.error(String(e))
     } finally {
@@ -168,12 +171,10 @@ export default function ProxyPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <IconShieldLock className="size-5" />
-              Proxy is Windows-only for now
+              {t.proxy.windowsOnlyTitle}
             </CardTitle>
             <CardDescription>
-              The proxy core (mihomo), system-proxy integration and TUN mode rely on
-              Windows machinery. macOS support may come later — subscriptions and
-              settings you configure on Windows will be there when it does.
+              {t.proxy.windowsOnlyDesc}
             </CardDescription>
           </CardHeader>
         </Card>
@@ -184,7 +185,7 @@ export default function ProxyPage() {
   if (!proxy || state === null) {
     return (
       <div className="text-muted-foreground flex flex-1 items-center justify-center text-sm">
-        Loading…
+        {t.common.loading}
       </div>
     )
   }
@@ -202,9 +203,9 @@ export default function ProxyPage() {
             checked={active}
             disabled={state.busy || (tun && !state.tunReady)}
             onCheckedChange={(v) => void toggle(v)}
-            aria-label="Toggle proxy"
+            aria-label={t.proxy.toggleAria}
           />
-          <span className="text-sm font-medium">{active ? "On" : "Off"}</span>
+          <span className="text-sm font-medium">{active ? t.proxy.on : t.proxy.off}</span>
         </div>
         <ToggleGroup
           type="single"
@@ -214,8 +215,8 @@ export default function ProxyPage() {
           onValueChange={(v) => v && void setMode(v as "sys" | "tun")}
           disabled={state.busy}
         >
-          <ToggleGroupItem value="sys">System Proxy</ToggleGroupItem>
-          <ToggleGroupItem value="tun">TUN Adapter</ToggleGroupItem>
+          <ToggleGroupItem value="sys">{t.proxy.systemProxy}</ToggleGroupItem>
+          <ToggleGroupItem value="tun">{t.proxy.tunAdapter}</ToggleGroupItem>
         </ToggleGroup>
         {state.busy && <IconLoader2 className="text-muted-foreground size-4 animate-spin" />}
         {state.lastError && (
@@ -231,18 +232,18 @@ export default function ProxyPage() {
           disabled={!state.running || testing}
         >
           <IconBolt className={testing ? "animate-pulse" : ""} />
-          {testing ? "Testing…" : "Test Latency"}
+          {testing ? t.proxy.testing : t.proxy.testLatency}
         </Button>
       </div>
       {tun && !state.tunReady && (
         <div className="bg-muted/50 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm">
           <IconShieldLock className="text-muted-foreground size-4 shrink-0" />
           <span className="text-muted-foreground min-w-0 flex-1">
-            TUN mode needs an elevated task (one UAC prompt, once per install)
+            {t.proxy.tunNeedsInstall}
           </span>
           <Button size="sm" onClick={() => void installTun()} disabled={installing}>
             <IconShieldLock />
-            {installing ? "Installing…" : "Install Service"}
+            {installing ? t.proxy.installing : t.proxy.installService}
           </Button>
         </div>
       )}
@@ -250,80 +251,80 @@ export default function ProxyPage() {
       <div className="grid grid-cols-1 gap-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card *:data-[slot=card]:shadow-xs @xl/main:grid-cols-2 @5xl/main:grid-cols-4 dark:*:data-[slot=card]:bg-card">
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Status</CardDescription>
+            <CardDescription>{t.proxy.status}</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums">
-              {state.running ? "Running" : "Stopped"}
+              {state.running ? t.proxy.running : t.proxy.stopped}
             </CardTitle>
             <CardAction>
               <Badge variant={state.running ? "secondary" : "outline"}>
                 <IconCircleCheck className="size-3" />
-                {tun ? "tun" : "system proxy"}
+                {tun ? t.proxy.tunBadge : t.proxy.sysBadge}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="text-muted-foreground text-sm">
             {state.running
-              ? `${tun ? "virtual adapter" : `127.0.0.1:${state.mixedPort}`} · ${state.nodeCount} nodes`
-              : "Turn on to route traffic"}
+              ? `${tun ? t.proxy.virtualAdapter : `127.0.0.1:${state.mixedPort}`} · ${t.proxy.nodesCount(state.nodeCount)}`
+              : t.proxy.turnOnToRoute}
           </CardFooter>
         </Card>
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Current Node</CardDescription>
+            <CardDescription>{t.proxy.currentNode}</CardDescription>
             <CardTitle className="truncate text-2xl font-semibold tabular-nums">
               {currentNode || "—"}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                {tun && !state.tunReady ? "install required" : active ? "active" : "idle"}
+                {tun && !state.tunReady ? t.proxy.installRequired : active ? t.proxy.activeBadge : t.proxy.idleBadge}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="text-muted-foreground text-sm">
-            {state.running ? "Click a node below to switch" : "Nodes listed below"}
+            {state.running ? t.proxy.clickToSwitch : t.proxy.nodesListed}
           </CardFooter>
         </Card>
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Download</CardDescription>
+            <CardDescription>{t.proxy.download}</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums">
               {formatSpeed(last?.down ?? 0)}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
                 <IconArrowDown className="size-3" />
-                live
+                {t.proxy.live}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="text-muted-foreground text-sm">
-            Session {prettyBytes(last?.downTotal ?? 0)}
+            {t.proxy.session(prettyBytes(last?.downTotal ?? 0))}
           </CardFooter>
         </Card>
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Upload</CardDescription>
+            <CardDescription>{t.proxy.upload}</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums">
               {formatSpeed(last?.up ?? 0)}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
                 <IconArrowUp className="size-3" />
-                live
+                {t.proxy.live}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="text-muted-foreground text-sm">
-            Session {prettyBytes(last?.upTotal ?? 0)}
+            {t.proxy.session(prettyBytes(last?.upTotal ?? 0))}
           </CardFooter>
         </Card>
       </div>
 
       <Card className="py-4">
         <CardHeader className="px-4">
-          <CardTitle className="text-sm">Traffic</CardTitle>
+          <CardTitle className="text-sm">{t.proxy.traffic}</CardTitle>
           <CardDescription className="text-xs">
-            {state.running ? `Last ${TRAFFIC_WINDOW}s · upload / download` : "Start the proxy to see live traffic"}
+            {state.running ? t.proxy.lastWindow(TRAFFIC_WINDOW) : t.proxy.startToSeeTraffic}
           </CardDescription>
         </CardHeader>
         <CardContent className="px-2 sm:px-4">
@@ -385,7 +386,7 @@ export default function ProxyPage() {
       <div className="grid min-h-0 flex-1 gap-4 @xl/main:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
         <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
           <div className="flex items-center gap-2 border-b px-3 py-2">
-            <span className="text-sm font-semibold">Subscriptions</span>
+            <span className="text-sm font-semibold">{t.proxy.subscriptions}</span>
             <span className="text-muted-foreground text-xs">{state.subscriptions.length}</span>
           </div>
           <div className="flex gap-2 border-b p-3">
@@ -399,7 +400,7 @@ export default function ProxyPage() {
             />
             <Button size="sm" className="shrink-0" onClick={() => void add()} disabled={!url.trim() || adding}>
               <IconPlus />
-              {adding ? "Adding…" : "Add"}
+              {adding ? t.proxy.adding : t.proxy.add}
             </Button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-scroll">
@@ -409,14 +410,14 @@ export default function ProxyPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate font-medium">{sub.name}</p>
                     <p className="text-muted-foreground truncate text-xs">
-                      {sub.nodeCount} nodes · {sub.updatedAt ? formatTime(sub.updatedAt) : "—"}
+                      {t.proxy.subNodes(sub.nodeCount)} · {sub.updatedAt ? formatTime(sub.updatedAt) : "—"}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="size-7 shrink-0"
-                    aria-label="Update subscription"
+                    aria-label={t.proxy.updateSubAria}
                     disabled={updating === sub.id || state.busy}
                     onClick={() => void updateSub(sub.id)}
                   >
@@ -426,7 +427,7 @@ export default function ProxyPage() {
                     variant="ghost"
                     size="icon"
                     className="text-destructive hover:text-destructive size-7 shrink-0"
-                    aria-label="Delete subscription"
+                    aria-label={t.proxy.deleteSubAria}
                     onClick={() => void removeSub(sub.id)}
                   >
                     <IconTrash className="size-4" />
@@ -437,7 +438,7 @@ export default function ProxyPage() {
             ))}
             {state.subscriptions.length === 0 && (
               <p className="text-muted-foreground p-3 text-sm">
-                No subscriptions yet — add your provider's clash URL
+                {t.proxy.noSubs}
               </p>
             )}
           </div>
@@ -445,12 +446,12 @@ export default function ProxyPage() {
 
         <div className="flex min-h-0 flex-col overflow-hidden rounded-lg border">
           <div className="flex items-center gap-2 border-b px-3 py-2">
-            <span className="text-sm font-semibold">Nodes</span>
+            <span className="text-sm font-semibold">{t.proxy.nodes}</span>
             <span className="text-muted-foreground text-xs">
               {state.running
-                ? `${nodes?.nodes.length ?? 0} nodes · click to switch`
+                ? t.proxy.nodesSwitchHint(nodes?.nodes.length ?? 0)
                 : state.cachedNodes.length > 0
-                  ? `${state.cachedNodes.length} nodes · turn on to select`
+                  ? t.proxy.nodesSelectHint(state.cachedNodes.length)
                   : ""}
             </span>
           </div>
@@ -470,12 +471,12 @@ export default function ProxyPage() {
             ) : !state.running ? (
               <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
                 <IconCircleX className="size-4" />
-                Core not running
+                {t.proxy.coreNotRunning}
               </div>
             ) : nodes === null ? (
               <div className="text-muted-foreground flex items-center gap-2 p-3 text-sm">
                 <IconLoader2 className="size-4 animate-spin" />
-                Loading nodes…
+                {t.proxy.loadingNodes}
               </div>
             ) : (
               <div className="flex flex-col">
@@ -496,13 +497,13 @@ export default function ProxyPage() {
                         </span>
                         {isActive && (
                           <Badge variant="outline" className="ml-auto shrink-0">
-                            active
+                            {t.proxy.activeBadge}
                           </Badge>
                         )}
                         <span
                           className={`text-xs ${node.delay ? "" : "text-muted-foreground"} ${isActive ? "" : "ml-auto"} shrink-0`}
                         >
-                          {node.delay ? `${node.delay} ms` : "—"}
+                          {node.delay ? t.proxy.msDelay(node.delay) : "—"}
                         </span>
                       </button>
                       <Separator />

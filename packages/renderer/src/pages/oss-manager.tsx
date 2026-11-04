@@ -18,6 +18,7 @@ import {
 import { toast } from "sonner"
 
 import { useCloudAuth } from "@/components/cloud/auth"
+import { useI18n } from "@/i18n"
 import { MediaPreview } from "@/components/cloud/media-preview"
 import { Button } from "@halloween/ui/button"
 import { Checkbox } from "@halloween/ui/checkbox"
@@ -76,6 +77,7 @@ interface PromptState {
 
 export default function OssManagerPage() {
   const { authed, login, error: authError, retry, authCode, signingIn, handleError } = useCloudAuth()
+  const { t } = useI18n()
   const oss = window.electron?.oss
   const cloud = window.electron?.cloud
   const [signInError, setSignInError] = React.useState("")
@@ -104,7 +106,7 @@ export default function OssManagerPage() {
   const busy = loading || loadingMore || working
 
   const reportError = React.useCallback((e: unknown) => {
-    if (isTransferCancelled(e)) { toast.info("Transfer cancelled"); return }
+    if (isTransferCancelled(e)) { toast.info(t.oss.transferCancelled); return }
     handleError(e)
     toast.error(fileOperationError(e))
   }, [handleError])
@@ -224,7 +226,7 @@ export default function OssManagerPage() {
         ? await oss.uploadFiles(accountId, bucket, prefix, localPaths)
         : await oss.pickAndUpload(accountId, bucket, prefix)
       if (!uploaded?.length) return
-      toast.success("Upload complete")
+      toast.success(t.oss.uploadComplete)
       if (scopeRef.current === target) void loadPage()
     } catch (e) { reportError(e) }
     finally { setWorking(false) }
@@ -237,14 +239,14 @@ export default function OssManagerPage() {
       const dir = await cloud.chooseDownloadDir()
       if (!dir) return
       for (const file of files) await oss.downloadTo(accountId, bucket, file.key, file.name, dir)
-      toast.success(`Saved to ${dir}`)
+      toast.success(t.oss.savedTo(dir))
     } catch (e) { reportError(e) }
   }
 
   const remove = async (list: OssEntry[]) => {
     if (!oss || !list.length || busy) return
     const includesFolders = list.some((entry) => entry.type === "dir")
-    if (!window.confirm(`Permanently delete ${list.length} item${list.length > 1 ? "s" : ""}?${includesFolders ? " All files and subfolders inside selected folders will also be deleted." : ""} This cannot be undone.`)) return
+    if (!window.confirm(t.oss.deleteConfirm(list.length, includesFolders))) return
     const target = scope
     setWorking(true)
     try {
@@ -271,7 +273,7 @@ export default function OssManagerPage() {
     const value = prompt.value.trim()
     if (!value) return
     if (/[/\\]/.test(value) || value === "." || value === "..") {
-      toast.error("Enter a name without path separators.")
+      toast.error(t.oss.nameNoSeparators)
       return
     }
     const target = scope
@@ -324,21 +326,21 @@ export default function OssManagerPage() {
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         {authed === null ? (
           <div className="flex max-w-lg flex-col items-center gap-3 text-sm">
-            <p className={authError ? "text-destructive" : "text-muted-foreground"}>{authError || "Loading…"}</p>
-            {authError && <Button variant="outline" size="sm" onClick={() => void retry()}>Retry connection</Button>}
+            <p className={authError ? "text-destructive" : "text-muted-foreground"}>{authError || t.common.loading}</p>
+            {authError && <Button variant="outline" size="sm" onClick={() => void retry()}>{t.common.retryConnection}</Button>}
           </div>
         ) : (
           <>
-            <p className="text-sm">Sign in to use the OSS manager</p>
+            <p className="text-sm">{t.oss.signInTitle}</p>
             {signingIn ? (
               <p className="text-muted-foreground flex items-center gap-2 text-sm">
                 <IconRefresh className="size-4 animate-spin" />
-                Complete the authorization in your browser…
+                {t.common.completeAuth}
                 {authCode && <span className="font-mono font-semibold">Code: {authCode.userCode}</span>}
               </p>
             ) : (
               <Button size="sm" onClick={() => void startSignIn()}>
-                Sign in with browser
+                {t.common.signInBrowser}
               </Button>
             )}
             {(signInError || authError) && <p className="text-destructive text-sm">{signInError || authError}</p>}
@@ -360,10 +362,10 @@ export default function OssManagerPage() {
   if (accounts.length === 0) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
-        <p className="text-muted-foreground text-sm">No OSS accounts configured</p>
+        <p className="text-muted-foreground text-sm">{t.oss.noAccounts}</p>
         <Button variant="outline" size="sm" onClick={() => void cloud?.openAdmin("oss-accounts").catch(reportError)}>
           <IconExternalLink />
-          Open Admin Console
+          {t.common.openAdminConsole}
         </Button>
       </div>
     )
@@ -392,7 +394,7 @@ export default function OssManagerPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Select value={accountId} onValueChange={pickAccount}>
             <SelectTrigger size="sm" className="w-40">
-              <SelectValue placeholder="Account" />
+              <SelectValue placeholder={t.oss.accountPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {accounts.map((a) => (
@@ -404,7 +406,7 @@ export default function OssManagerPage() {
           </Select>
           <Select value={bucket} onValueChange={pickBucket}>
             <SelectTrigger size="sm" className="w-52">
-              <SelectValue placeholder="Bucket" />
+              <SelectValue placeholder={t.oss.bucketPlaceholder} />
             </SelectTrigger>
             <SelectContent>
               {buckets.map((b) => (
@@ -416,7 +418,7 @@ export default function OssManagerPage() {
           </Select>
           <div className="ml-auto flex items-center gap-2">
             <Input
-              placeholder="Filter"
+              placeholder={t.oss.filter}
               className="w-36 md:w-48"
               value={searchInput}
               onChange={(e) => { setSearchInput(e.target.value); setSelected(new Set()) }}
@@ -428,11 +430,11 @@ export default function OssManagerPage() {
               disabled={!bucket || busy}
             >
               <IconFolderPlus />
-              New Folder
+              {t.oss.newFolder}
             </Button>
             <Button size="sm" onClick={() => void upload()} disabled={!bucket || busy}>
               <IconUpload />
-              Upload
+              {t.oss.upload}
             </Button>
           </div>
         </div>
@@ -442,7 +444,7 @@ export default function OssManagerPage() {
               variant="ghost"
               size="icon"
               className="size-7 shrink-0"
-              aria-label="Back"
+              aria-label={t.oss.backAria}
               onClick={() => {
                 const cut = segments.slice(0, -1)
                 navigate(cut.length > 0 ? cut.join("/") + "/" : "")
@@ -456,7 +458,7 @@ export default function OssManagerPage() {
               className="hover:bg-accent rounded px-1.5 py-0.5"
               onClick={() => navigate("")}
             >
-              root
+              {t.oss.root}
             </button>
             {segments.map((segment, i) => (
               <React.Fragment key={i}>
@@ -475,10 +477,10 @@ export default function OssManagerPage() {
 
       {selected.size > 0 && (
         <div className="bg-muted/50 flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm">
-          {selected.size} selected
+          {t.common.selected(selected.size)}
           <Button variant="outline" size="sm" disabled={busy} onClick={() => void download(selectedEntries)}>
             <IconDownload />
-            Download
+            {t.oss.download}
           </Button>
           <Button
             variant="outline"
@@ -486,7 +488,7 @@ export default function OssManagerPage() {
             className="text-destructive hover:text-destructive"
             disabled={busy} onClick={() => void remove(selectedEntries)}
           >
-            Delete
+            {t.oss.delete}
           </Button>
           <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setSelected(new Set())}>
             Clear
@@ -497,7 +499,7 @@ export default function OssManagerPage() {
       <div className="relative flex-1 overflow-hidden rounded-lg border">
         {!bucket ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            Select a bucket
+            {t.oss.selectBucket}
           </div>
         ) : loading ? (
           <div className="text-muted-foreground flex h-full items-center justify-center gap-2 text-sm">
@@ -513,7 +515,7 @@ export default function OssManagerPage() {
           </div>
         ) : visible.length === 0 ? (
           <div className="text-muted-foreground flex h-full items-center justify-center text-sm">
-            {filter ? "No matches" : "Empty folder"}
+            {filter ? t.oss.noMatches : t.oss.emptyFolder}
           </div>
         ) : (
           <div className="h-full overflow-auto">
@@ -527,10 +529,10 @@ export default function OssManagerPage() {
                       onCheckedChange={(v) =>
                         setSelected(v === true ? selectVisibleKeys(visible) : new Set())
                       }
-                      aria-label="Select all"
+                      aria-label={t.oss.selectAllAria}
                     />
                   </TableHead>
-                  <TableHead>Name</TableHead>
+                  <TableHead>{t.common.name}</TableHead>
                   <TableHead className="w-24">Size</TableHead>
                   <TableHead className="w-40">Modified</TableHead>
                   <TableHead className="w-12" />
@@ -573,16 +575,16 @@ export default function OssManagerPage() {
                           {entry.type === "file" && (
                             <DropdownMenuItem onClick={() => void download([entry])}>
                               <IconDownload />
-                              Download
+                              {t.oss.download}
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem disabled={busy}
                             onClick={() => setPrompt({ mode: "rename", value: entry.name, target: entry })}
                           >
-                            Rename
+                            {t.oss.rename}
                           </DropdownMenuItem>
                           <DropdownMenuItem disabled={busy} variant="destructive" onClick={() => void remove([entry])}>
-                            Delete
+                            {t.oss.delete}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
@@ -595,7 +597,7 @@ export default function OssManagerPage() {
         )}
         {dragOver && (
           <div className="bg-primary/5 pointer-events-none absolute inset-2 flex items-center justify-center rounded-lg border-2 border-dashed border-primary/40">
-            <span className="text-primary text-sm">Drop files to upload here</span>
+            <span className="text-primary text-sm">{t.oss.dropHere}</span>
           </div>
         )}
       </div>
@@ -604,7 +606,7 @@ export default function OssManagerPage() {
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
           <p className="text-muted-foreground">More objects are available. Filter searches only the {entries.length} loaded entries.</p>
           <Button variant="outline" size="sm" disabled={busy || !nextMarker} onClick={() => void loadPage(nextMarker)}>
-            {loadingMore ? "Loading…" : "Load more"}
+            {loadingMore ? t.common.loading : t.oss.loadMore}
           </Button>
         </div>
       )}
@@ -612,7 +614,7 @@ export default function OssManagerPage() {
       <Dialog open={prompt !== null} onOpenChange={(o) => !o && !working && setPrompt(null)}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{prompt?.mode === "mkdir" ? "New Folder" : "Rename"}</DialogTitle>
+            <DialogTitle>{prompt?.mode === "mkdir" ? t.oss.newFolder : t.oss.rename}</DialogTitle>
           </DialogHeader>
           <Input
             autoFocus
@@ -625,10 +627,10 @@ export default function OssManagerPage() {
           />
           <DialogFooter>
             <Button variant="outline" disabled={working} onClick={() => setPrompt(null)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button onClick={() => void submitPrompt()} disabled={busy || !prompt?.value.trim()}>
-              {prompt?.mode === "mkdir" ? "Create" : "Rename"}
+              {prompt?.mode === "mkdir" ? t.oss.create : t.oss.rename}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -644,7 +646,7 @@ export default function OssManagerPage() {
             name={preview.name}
             url={preview.url}
             refreshUrl={async () => {
-              if (!oss || scopeRef.current !== preview.scope) throw new Error("Preview is no longer available")
+              if (!oss || scopeRef.current !== preview.scope) throw new Error(t.oss.previewGone)
               return (await oss.previewUrl(accountId, bucket, preview.key)).url
             }}
             onUrlChange={(url) => setPreview((current) => current?.key === preview.key && current.scope === preview.scope ? { ...current, url } : current)}
@@ -657,7 +659,7 @@ export default function OssManagerPage() {
                 onClick={() => window.open(preview.url, "_blank")}
               >
                 <IconExternalLink />
-                Open in Browser
+                {t.common.openInBrowser}
               </Button>
             </DialogFooter>
           )}
