@@ -3,7 +3,7 @@ import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { registerCloudHandlers } from './cloud'
 import { registerOssHandlers } from './oss'
-import { registerProxyHandlers, shutdownProxy } from './proxy'
+import { registerProxyHandlers, shutdownProxy } from './proxy/index'
 import { registerRssHandlers } from './rss'
 
 const devServerUrl = process.env['VITE_DEV_SERVER_URL']
