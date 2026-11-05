@@ -36,7 +36,9 @@ try {
           : String(vite.exitCode)
       throw new Error(`Vite exited: ${detail}`)
     }
-    const response = await fetch("http://127.0.0.1:5174/admin/", { signal: AbortSignal.timeout(1500) }).catch(() => null)
+    const response = await fetch("http://127.0.0.1:5174/admin/", {
+      signal: AbortSignal.timeout(1500),
+    }).catch(() => null)
     if (response?.ok) {
       ready = true
       break
