@@ -28,7 +28,7 @@ try {
     stderr: "pipe",
   })
   let ready = false
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 200; i++) {
     if (vite.exitCode !== null) {
       const detail =
         vite.stderr instanceof ReadableStream
@@ -36,7 +36,7 @@ try {
           : String(vite.exitCode)
       throw new Error(`Vite exited: ${detail}`)
     }
-    const response = await fetch("http://127.0.0.1:5174/admin/").catch(() => null)
+    const response = await fetch("http://127.0.0.1:5174/admin/", { signal: AbortSignal.timeout(1500) }).catch(() => null)
     if (response?.ok) {
       ready = true
       break

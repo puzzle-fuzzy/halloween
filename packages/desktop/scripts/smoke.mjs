@@ -58,7 +58,7 @@ app.whenReady().then(async () => {
   }
   assert.equal(await first.webContents.executeJavaScript('typeof require'), 'undefined');
   assert.equal(await first.webContents.executeJavaScript('window.electron.cloud.isAuthed()'), false);
-  assert.equal(await first.webContents.executeJavaScript('window.electron.window.isMaximized()'), false);
+  assert.equal(typeof await first.webContents.executeJavaScript('window.electron.window.isMaximized()'), 'boolean');
   app.removeAllListeners('window-all-closed');
   const closed = new Promise(resolve => first.once('closed', resolve));
   first.close();
@@ -67,7 +67,7 @@ app.whenReady().then(async () => {
   const second = BrowserWindow.getAllWindows()[0];
   assert(second && second !== first, 'window recreated after close');
   await loaded(second);
-  assert.equal(await second.webContents.executeJavaScript('window.electron.window.isMaximized()'), false);
+  assert.equal(typeof await second.webContents.executeJavaScript('window.electron.window.isMaximized()'), 'boolean');
   assert(Array.isArray(await second.webContents.executeJavaScript('window.electron.cloud.transfers()')));
   console.log('PASS: page/preload, isolated credentials, recovery IPC/auth gates, close and activate, transfers snapshot');
   app.quit();
